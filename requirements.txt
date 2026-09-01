@@ -1,5 +1,4 @@
-tensorflow>=2.0.0
+tensorflow
+gradio
 numpy
-matplotlib
-pillow
-streamlit
+Pillow
