@@ -1,21 +1,21 @@
 # Plant Disease Detection using Deep Learning
 
-مشروع تخرج أو تطبيق عملي لاكتشاف وتصنيف أمراض النباتات باستخدام التعلم العميق وشبكات العصبونات التلافيفية (CNN) عبر TensorFlow وKeras.
+An end-to-end deep learning project developed to identify and classify plant diseases automatically using Convolutional Neural Networks (CNNs) with TensorFlow and Keras.
 
-## نبذة عن المشروع
-يهدف المشروع إلى استخدام الذكاء الاصطناعي والرؤية الحاسوبية في تحليل الصور الرقمية للنباتات للتعرف على الإصابات والأمراض بشكل مبكر ودقيق للمساعدة في المجال الزراعي.
+## Project Overview
+This project leverages computer vision and deep learning to analyze digital images of plant leaves, enabling early and accurate detection of diseases to support agricultural applications.
 
-## التقنيات المستخدمة
+## Technologies Used
 * Python
 * TensorFlow / Keras
 * Google Colab
 * NumPy / OpenCV
 
-## محتويات المستودع
-* `plant_disease_model.h5`: ملف النموذج المدرب بالكامل وجاهز للتنبؤ.
-* `README.md`: توثيق المشروع.
+## Repository Contents
+* `plant_disease_model.h5`: The fully trained deep learning model file, ready for inference.
+* `README.md`: Project documentation.
 
-## طريقة العمل
-* بناء وتدريب نموذج CNN للتعرف على الأنماط والصور.
-* حفظ الأوزان والنموذج النهائي في ملف `.h5` للاستخدام المباشر.
+## Methodology
+* Built and trained a custom CNN model to recognize patterns and features in image datasets.
+* Saved the final model weights and architecture into an `.h5` file for direct utilization.
 * 
