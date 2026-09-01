@@ -40,3 +40,8 @@ To rigorously prove the model's capability and generalization, the following met
 - **Recall:** 94.1%
 - **F1-Score:** 93.9%
 - **Confusion Matrix:** Implemented to track true positives vs false positives across all 5 plant health categories, ensuring low misclassification rates between similar leaf diseases.
+```
+## Interactive Web Interface (Gradio UI)
+The project includes a lightweight, user-friendly web application built using **Gradio** (`app.py`). 
+- **Functionality:** Allows users to upload a photo of a plant leaf.
+- **Output:** Instantly processes the image through the trained CNN model and displays the predicted health category alongside the confidence score.
