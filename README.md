@@ -7,6 +7,17 @@ An end-to-end Deep Learning project designed to detect and classify plant leaf d
 - **Image Preprocessing:** Automatic resizing of input images to `128x128` pixels with RGB channels.
 - **Multi-Class Classification:** Capable of classifying 5 distinct plant health statuses/diseases.
 - **Interactive Web App:** User-friendly interface via Gradio that displays the predicted disease name and confidence percentage immediately.
+- ## Dataset & Classes Information
+- **Dataset Source:** Plant Disease Image Dataset
+- **Image Size:** 128x128 pixels (RGB)
+- **Total Classes:** 5 Plant Health Categories
+  1. Healthy Plant
+  2. Early Blight
+  3. Late Blight
+  4. Powdery Mildew
+  5. Leaf Spot
+- **Data Splitting:** Divided into training and validation sets to ensure high generalization and prevent overfitting.
+
 
 ## Project Structure
 ```text
