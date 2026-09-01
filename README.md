@@ -1,22 +1,18 @@
-# Plant Health Classifier
+# Plant Disease Detection using Deep Learning
 
-A lightweight computer vision tool built to inspect crop foliage, spot early signs of crop diseases, and output automated health diagnostics.
+An end-to-end deep learning project developed to classify and detect plant leaf diseases accurately using Convolutional Neural Networks (CNNs) implemented with TensorFlow and Keras. This project is built as part of an AI engineering portfolio to demonstrate practical computer vision applications in agriculture.
 
-## Key Features
-* **Image Processing Pipeline:** Standardizes input leaf photos for consistent model ingestion.
-* **Core Neural Network:** Utilizes a sequential architecture built in TensorFlow and Keras to isolate visual anomalies.
-* **Serialized Weights:** Stores trained parameters in `plant_disease_model.h5` for instant execution and evaluation.
+## Project Overview
+Plant diseases pose a severe threat to global food security and agricultural yield. This project leverages computer vision techniques to automate the identification of plant health conditions from image data, helping enable early detection and intervention.
 
-## Tech Stack
+## Technologies Used
 * Python
-* TensorFlow & Keras
-* NumPy & OpenCV
-* Google Colab
+* TensorFlow / Keras (CNN Architecture and Model Training)
+* OpenCV / NumPy (Image Processing and Data Manipulation)
 
-## Quick Start
-Load the model weights directly into your environment for inference:
-```python
-from tensorflow.keras.models import load_model
-
-model = load_model('plant_disease_model.h5')
-
+## Repository Structure
+```text
+Plant-Disease-Project/
+│
+├── plant_disease_model.h5    # Trained Convolutional Neural Network weights and architecture
+└── README.md                 # Project Documentation
