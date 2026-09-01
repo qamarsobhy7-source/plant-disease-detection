@@ -32,6 +32,7 @@ git clone [https://github.com/qamarsobhy7-source/plant-disease-detection.git](ht
 cd plant-disease-detection
 pip install -r requirements.txt
 python app.py
+```
 ## Model Evaluation & Performance
 To rigorously prove the model's capability and generalization, the following metrics are evaluated on an unseen test set:
 - **Test Accuracy:** 94.5%
