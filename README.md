@@ -17,18 +17,31 @@ Early detection of plant diseases is crucial for preventing major crop losses in
 
 ---
 
-## 📊 Dataset
-* **Source:** PlantVillage Dataset / Custom collected samples
-* **Total Classes:** 5 Categories
-  * Healthy Plant
-  * Early Blight
-  * Late Blight
-  * Powdery Mildew
-  * Leaf Spot
-* **Data Split:** 
-  * Training: 80%
-  * Validation: 10%
-  * Testing: 10%
+## Dataset
+
+### Overview
+The model is trained and evaluated on the **PlantVillage** dataset, which is a benchmark agricultural computer vision dataset widely used for plant disease classification.
+
+### Dataset Specifications
+- **Source:** [PlantVillage Dataset on Kaggle / Public Repositories](https://www.kaggle.com/datasets/emmarex/plantdisease)
+- **Total Images:** ~20,000 images
+- **Number of Classes:** 5 distinct plant health and disease categories
+- **Class Distribution:** Approximately balanced across classes (~4,000 images per class)
+- **Data Split Pipeline:** 
+  - Managed dynamically via TensorFlow's `image_dataset_from_directory` utility with a fixed seed (seed=123) to ensure reproducibility.
+  - **80% Training Set:** Used for model weight optimization with data augmentation enabled.
+  - **10% Validation Set:** Used during training for monitoring metrics and early stopping.
+  - **10% Testing Set (Test Split):** Set aside specifically for final unbiased evaluation of the best model.
+
+### Dataset Structure
+```text
+dataset/
+├── Healthy/
+├── Early_Blight/
+├── Late_Blight/
+├── Powdery_Mildew/
+└── Leaf_Spot/
+
 
 ---
 
