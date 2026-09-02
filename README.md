@@ -63,15 +63,8 @@ plant-disease-detection/
 ├── LICENSE                 # Project license
 └── README.md               # Project documentation
 
-git clone [https://github.com/qamarsobhy7-source/plant-disease-detection.git](https://github.com/qamarsobhy7-source/plant-disease-detection.git)
-cd plant-disease-detection
-pip install -r requirements.txt
-streamlit run app.py
-## 🚀 How to Run the Project Locally
 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/qamarsobhy7-source/plant-disease-detection.git](https://github.com/qamarsobhy7-source/plant-disease-detection.git)
-   cd plant-disease-detection
-pip install -r requirements.txt
-streamlit run app.py
+How to Run:
+1. git clone https://github.com/qamarsobhy7-source/plant-disease-detection.git
+2. pip install -r requirements.txt
+3. streamlit run app.py
