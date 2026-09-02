@@ -1,96 +1,272 @@
-# 🌱 Plant Disease Detection System
+Plant Disease Detection System
 
-A deep learning-based Computer Vision application designed to detect and classify plant leaf diseases accurately using Convolutional Neural Networks (CNN) and deployed via an interactive Streamlit web interface.
+A deep learning-based computer vision application for classifying plant leaf images into five predefined health and disease categories. The project uses a custom Convolutional Neural Network (CNN) built with TensorFlow/Keras and provides a Streamlit interface for image-based prediction.
 
----
+Overview
 
-## 🔍 Project Overview
-Early detection of plant diseases is crucial for preventing major crop losses in agriculture. This project leverages Deep Learning to analyze leaf images and instantly identify potential diseases, providing farmers and researchers with a reliable diagnostic tool.
+Plant diseases can affect crop quality and productivity, making early identification an important part of crop management.
 
----
+This project uses image classification to analyze plant leaf images and predict their corresponding condition. The trained CNN receives a preprocessed leaf image and returns the most likely class together with a confidence score.
 
-## ✨ Features
-* **Real-time Prediction:** Instant classification via a user-friendly Streamlit web interface.
-* **Human-Readable Outputs:** Maps raw model outputs directly to clear disease names and confidence scores.
-* **Robust Preprocessing:** Automated image resizing and normalization matching the training pipeline.
-* **Clean Architecture:** Well-structured codebase separating models, assets, and source code.
+The project consists of a trained model, a training script, and a Streamlit application for running predictions.
 
----
+Features
 
-## Dataset
+- Classifies plant leaf images into five predefined categories.
+- Accepts JPG, JPEG, and PNG images.
+- Resizes uploaded images to "128 × 128" pixels before prediction.
+- Uses a TensorFlow/Keras CNN model.
+- Maps model output indices to readable class names.
+- Displays the predicted condition and confidence score.
+- Uses Streamlit for the prediction interface.
+- Includes sample images for testing the application.
 
-### Overview
-The model is trained and evaluated on the **PlantVillage** dataset, which is a benchmark agricultural computer vision dataset widely used for plant disease classification.
+Dataset
 
-### Dataset Specifications
-- **Source:** [PlantVillage Dataset on Kaggle / Public Repositories](https://www.kaggle.com/datasets/emmarex/plantdisease)
-- **Total Images:** ~20,000 images
-- **Number of Classes:** 5 distinct plant health and disease categories
-- **Class Distribution:** Approximately balanced across classes (~4,000 images per class)
-- **Data Split Pipeline:** 
-  - Managed dynamically via TensorFlow's `image_dataset_from_directory` utility with a fixed seed (seed=123) to ensure reproducibility.
-  - **80% Training Set:** Used for model weight optimization with data augmentation enabled.
-  - **10% Validation Set:** Used during training for monitoring metrics and early stopping.
-  - **10% Testing Set (Test Split):** Set aside specifically for final unbiased evaluation of the best model.
+The project uses a labeled plant leaf image dataset for a five-class classification task.
 
-### Dataset Structure
-```text
-dataset/
-├── Healthy/
-├── Early_Blight/
-├── Late_Blight/
-├── Powdery_Mildew/
-└── Leaf_Spot/
+Classes
 
+The current application supports the following classes:
 
----
+1. Healthy Plant
+2. Early Blight
+3. Late Blight
+4. Powdery Mildew
+5. Leaf Spot
 
-## 🧠 Model Architecture
-The system uses a custom Convolutional Neural Network (CNN) built with TensorFlow/Keras, optimized for image classification tasks.
-* **Input Shape:** `(128, 128, 3)`
-* **Layers:** Convolutional layers with ReLU activation, Max Pooling, Dropout for regularization, and a Dense Softmax output layer.
+The class order is defined in "app.py" and must remain consistent with the output order used when training the model.
 
----
+Data Split
 
-## ⚙️ Training & Pipeline
-* **Optimizer:** Adam
-* **Loss Function:** Categorical Crossentropy
-* **Preprocessing:** Images resized to $128 \times 128$ pixels and normalized to scale pixel values.
+The model training workflow is intended to use separate training, validation, and test data.
 
----
+If the dataset is split into subsets, the exact split ratios and random seed should be kept consistent between training and evaluation to make the results reproducible.
 
-## 📈 Evaluation & Performance
-* Evaluated on a separate Test Dataset to ensure generalization and prevent overfitting.
-* Metrics tracked: **Accuracy, Precision, Recall, F1-score**, and **Confusion Matrix**.
+The full training dataset is not included in this repository.
 
----
+Model Architecture
 
-## 🗂️ Project Structure
-```text
+The project uses a custom Convolutional Neural Network implemented with TensorFlow/Keras.
+
+Input
+
+128 × 128 × 3
+
+The model expects an RGB image resized to "128 × 128" pixels.
+
+Architecture
+
+Input Image
+    ↓
+Conv2D (32 filters, 3×3, ReLU)
+    ↓
+MaxPooling2D
+    ↓
+Conv2D (64 filters, 3×3, ReLU)
+    ↓
+MaxPooling2D
+    ↓
+Conv2D (128 filters, 3×3, ReLU)
+    ↓
+MaxPooling2D
+    ↓
+Flatten
+    ↓
+Dense (128, ReLU)
+    ↓
+Dropout (0.5)
+    ↓
+Dense (5, Softmax)
+
+The final Softmax layer produces a probability for each of the five supported classes. The class with the highest probability is returned as the prediction.
+
+The trained model is stored in:
+
+plant_disease_model.h5
+
+Training
+
+The model architecture and compilation configuration are defined in "train_model.py".
+
+The current model uses:
+
+Setting| Value
+Framework| TensorFlow / Keras
+Architecture| Custom CNN
+Input Size| "128 × 128 × 3"
+Optimizer| Adam
+Loss Function| Categorical Crossentropy
+Output Classes| 5
+Output Activation| Softmax
+Dropout| 0.5
+
+The training workflow should use the same image dimensions, class order, and preprocessing assumptions expected by the saved model.
+
+The model definition is available in "train_model.py".
+
+Evaluation
+
+Model evaluation should be performed using a separate test set that was not used to update the model weights.
+
+The recommended metrics for this multi-class classification problem are:
+
+- Accuracy
+- Precision
+- Recall
+- F1-score
+- Confusion Matrix
+
+No fixed performance numbers are reported here unless they are generated from the actual final test set.
+
+This avoids presenting estimated or unverified accuracy values as measured results.
+
+Evaluation Reports
+
+For a complete experiment, the following files can be added to the repository:
+
+evaluation/
+├── classification_report.txt
+├── confusion_matrix.png
+├── accuracy.png
+└── loss.png
+
+Installation
+
+Requirements
+
+The application uses Python packages listed in "requirements.txt", including:
+
+- TensorFlow
+- Streamlit
+- NumPy
+- Pillow
+- OpenCV
+- Matplotlib
+
+The repository currently provides these dependencies through "requirements.txt".
+
+Setup
+
+Clone the repository:
+
+git clone https://github.com/qamarsobhy7-source/plant-disease-detection.git
+
+Move into the project directory:
+
+cd plant-disease-detection
+
+Create a virtual environment:
+
+python -m venv .venv
+
+Activate it on Windows:
+
+.venv\Scripts\activate
+
+On macOS/Linux:
+
+source .venv/bin/activate
+
+Install the required packages:
+
+pip install -r requirements.txt
+
+Usage
+
+The project includes a Streamlit application in "app.py".
+
+Start the application with:
+
+streamlit run app.py
+
+After launching the application:
+
+1. Select a JPG, JPEG, or PNG image of a plant leaf.
+2. The uploaded image is displayed in the application.
+3. The image is resized to "128 × 128" pixels.
+4. The processed image is passed to the trained CNN.
+5. The application selects the class with the highest predicted probability.
+6. The predicted condition and confidence score are displayed.
+
+The application also includes error handling for image processing and model loading.
+
+Example Predictions
+
+The repository contains sample images under:
+
+assets/sample_images/
+
+These images can be used to test the Streamlit application.
+
+A prediction is displayed in the following format:
+
+Predicted Condition: Early Blight
+Confidence Score: 94.25%
+
+The actual class and confidence depend on the image provided to the model.
+
+Project Structure
+
 plant-disease-detection/
 │
-├── app.py                  # Streamlit web application
-├── plant_disease_model.h5  # Trained CNN model weights
-├── requirements.txt        # Required Python packages
-├── .gitignore              # Git exclusion rules
-├── LICENSE                 # Project license
-└── README.md               # Project documentation
+├── assets/
+│   └── sample_images/
+│       ├── sample image 1
+│       ├── sample image 2
+│       └── ...
+│
+├── app.py
+├── train_model.py
+├── plant_disease_model.h5
+├── requirements.txt
+├── .gitignore
+├── LICENSE
+└── README.md
 
+Main Files
 
-How to Run:
-1. git clone https://github.com/qamarsobhy7-source/plant-disease-detection.git
-2. pip install -r requirements.txt
-3. streamlit run app.py
+File| Purpose
+"app.py"| Streamlit application used for image prediction
+"train_model.py"| Defines and compiles the CNN architecture
+"plant_disease_model.h5"| Saved trained Keras model
+"requirements.txt"| Python dependencies
+"assets/sample_images/"| Sample images for testing
+".gitignore"| Git exclusion rules
+"LICENSE"| Project license
+"README.md"| Project documentation
 
----
+Limitations
 
-## 📊 Model Comparison & Benchmarking
-To ensure a robust and high-performing portfolio project, we evaluated multiple deep learning architectures on the test dataset. Below is the comparative performance summary:
+- The model is limited to the five classes included in its training configuration.
+- Images outside these classes may still receive a prediction because the classifier always selects one of its available output classes.
+- Prediction quality depends on image quality, lighting, background, camera conditions, and similarity to the training data.
+- Performance on real-world field images may differ from performance on the dataset used for training and testing.
+- The confidence score represents the model's output probability and does not guarantee that the prediction is correct.
+- The system should not be used as the sole basis for agricultural treatment or crop-management decisions.
 
-| Model Architecture | Test Accuracy | Test Loss | Model Size | Inference Speed |
-| :--- | :---: | :---: | :---: | :---: |
-| **Custom CNN** | ~92.4% | ~0.25 | ~15 MB | Fast |
-| **MobileNetV2** | ~96.8% | ~0.12 | ~14 MB | Very Fast |
-| **EfficientNetB0** | ~98.2% | ~0.08 | ~20 MB | Moderate |
+Future Improvements
 
-* **Key Takeaway:** Transfer learning architectures (`MobileNetV2` and `EfficientNetB0`) significantly improved classification accuracy and generalization compared to the baseline `Custom CNN`, making them ideal for high-reliability agricultural diagnostics.
+- Add a clearly documented dataset source and dataset statistics.
+- Add the complete training and evaluation pipeline.
+- Generate and publish verified test-set metrics.
+- Add a confusion matrix and training history plots.
+- Add a confidence threshold for uncertain predictions.
+- Add Top-3 predictions.
+- Expand the number of plant species and disease classes.
+- Include more real-world field images.
+- Compare the custom CNN with transfer-learning models using the same test protocol.
+- Add Grad-CAM for visual interpretation of model predictions.
+- Add automated tests for preprocessing and prediction.
+- Improve image validation and user feedback.
+- Deploy the application as a public web service.
+
+License
+
+This project is licensed under the MIT License.
+
+See the "LICENSE" file in the repository for the complete license text.
+
+Disclaimer
+
+This project is intended for educational and experimental purposes. Its predictions should not be considered a definitive agricultural diagnosis. For important crop-management or treatment decisions, the result should be reviewed by a qualified agricultural professional.
