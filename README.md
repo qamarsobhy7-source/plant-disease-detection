@@ -2,7 +2,7 @@ Plant Disease Detection System
 
 A deep learning-based computer vision system for classifying plant leaf images into predefined health and disease categories.
 
-The project provides a complete machine learning pipeline covering dataset preparation, stratified data splitting, model training, transfer learning, fine-tuning, model selection, evaluation, visualization, and interactive image classification through a Streamlit web application.
+The project provides a complete machine learning pipeline covering assets preparation, stratified data splitting, model training, transfer learning, fine-tuning, model selection, evaluation, visualization, and interactive image classification through a Streamlit web application.
 
 Project Overview
 
@@ -27,7 +27,7 @@ Main Features
 - Fixed and reproducible 80/10/10 train-validation-test split
 - Stratified data splitting
 - Fixed class ordering
-- Class-weight calculation for imbalanced datasets
+- Class-weight calculation for imbalanced assetss
 - Image augmentation during training
 - Custom CNN architecture
 - MobileNetV2 transfer learning
@@ -56,7 +56,7 @@ plant-disease-detection/
 ├── assets/
 │   └── sample_images/
 │
-├── dataset/
+├── assets/
 │   ├── Healthy Plant/
 │   ├── Early Blight/
 │   ├── Late Blight/
@@ -103,13 +103,13 @@ plant-disease-detection/
 ├── LICENSE
 └── README.md
 
-The "dataset/", "models/", and "results/" directories are generated or populated according to the project workflow. The local dataset itself is excluded from Git through ".gitignore".
+The "assets/", "models/", and "results/" directories are generated or populated according to the project workflow. The local assets itself is excluded from Git through ".gitignore".
 
 Dataset Organization
 
-The dataset must be organized into one directory per class:
+The assets must be organized into one directory per class:
 
-dataset/
+assets/
 ├── Healthy Plant/
 │   ├── image_001.jpg
 │   ├── image_002.jpg
@@ -145,7 +145,7 @@ The supported image formats are:
 - BMP
 - GIF
 
-The dataset is not included in this repository.
+The assets is not included in this repository.
 
 Data Splitting
 
@@ -228,14 +228,14 @@ python train_model.py
 
 The script performs the following operations:
 
-1. Validates the dataset.
+1. Validates the assets.
 2. Checks all required classes.
 3. Collects supported image files.
 4. Creates a stratified 80/10/10 split.
 5. Saves the exact split metadata.
 6. Calculates class weights.
 7. Saves the class mapping.
-8. Creates TensorFlow datasets.
+8. Creates TensorFlow assetss.
 9. Trains the Custom CNN.
 10. Trains MobileNetV2.
 11. Fine-tunes MobileNetV2.
@@ -398,7 +398,7 @@ Step 1 — Prepare the Dataset
 
 Place the images inside the required class directories:
 
-dataset/
+assets/
 ├── Healthy Plant/
 ├── Early Blight/
 ├── Late Blight/
@@ -487,9 +487,9 @@ Recommended Improvements
 
 Possible future improvements include:
 
-- Increasing dataset size and diversity
+- Increasing assets size and diversity
 - Collecting field images under real-world conditions
-- External validation on an independent dataset
+- External validation on an independent assets
 - Duplicate-image and near-duplicate detection
 - Advanced augmentation strategies
 - Hyperparameter optimization

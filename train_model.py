@@ -39,14 +39,14 @@ FINE_TUNE_EPOCHS = 10
 
 RANDOM_SEED = 123
 
-DATA_DIR = Path("dataset")
+DATA_DIR = Path("assets")
 MODELS_DIR = Path("models")
 RESULTS_DIR = Path("results")
 
 TRAINING_HISTORY_DIR = RESULTS_DIR / "training_history"
 
 # The class order is fixed intentionally.
-# The dataset folder names must match these names exactly.
+# The assets folder names must match these names exactly.
 CLASS_NAMES = [
     "Healthy Plant",
     "Early Blight",
@@ -123,10 +123,10 @@ def load_image(path, label):
     return image, label
 
 
-def create_dataset(paths, labels, training=False):
+def create_assets(paths, labels, training=False):
     """Create a tf.data.Dataset from image paths and integer labels."""
 
-    dataset = tf.data.Dataset.from_tensor_slices(
+    assets = tf.data.Dataset.from_tensor_slices(
         (
             np.asarray(paths, dtype=str),
             np.asarray(labels, dtype=np.int32),
@@ -134,25 +134,25 @@ def create_dataset(paths, labels, training=False):
     )
 
     if training:
-        dataset = dataset.shuffle(
+        assets = assets.shuffle(
             buffer_size=len(paths),
             seed=RANDOM_SEED,
             reshuffle_each_iteration=True,
         )
 
-    dataset = dataset.map(
+    assets = assets.map(
         load_image,
         num_parallel_calls=tf.data.AUTOTUNE,
     )
 
-    dataset = dataset.batch(BATCH_SIZE)
+    assets = assets.batch(BATCH_SIZE)
 
-    dataset = dataset.prefetch(tf.data.AUTOTUNE)
+    assets = assets.prefetch(tf.data.AUTOTUNE)
 
-    return dataset
+    return assets
 
 
-def collect_dataset():
+def collect_assets():
     """
     Collect all image paths according to the fixed CLASS_NAMES order.
     """
@@ -203,7 +203,7 @@ def collect_dataset():
     return all_paths, all_labels
 
 
-def validate_dataset_distribution(labels):
+def validate_assets_distribution(labels):
     """Validate that every class has enough samples."""
 
     counts = np.bincount(
@@ -722,8 +722,8 @@ def fine_tune_model(
     model,
     base_model,
     model_name,
-    train_dataset,
-    validation_dataset,
+    train_assets,
+    validation_assets,
     class_weights,
 ):
     """
@@ -765,8 +765,8 @@ def fine_tune_model(
     )
 
     history = model.fit(
-        train_dataset,
-        validation_data=validation_dataset,
+        train_assets,
+        validation_data=validation_assets,
         epochs=FINE_TUNE_EPOCHS,
         class_weight=class_weights,
         callbacks=callbacks,
@@ -783,9 +783,9 @@ def fine_tune_model(
 def train_single_model(
     model_name,
     model,
-    train_dataset,
-    validation_dataset,
-    test_dataset,
+    train_assets,
+    validation_assets,
+    test_assets,
     class_weights,
     base_model=None,
 ):
@@ -817,8 +817,8 @@ def train_single_model(
     )
 
     initial_history = model.fit(
-        train_dataset,
-        validation_data=validation_dataset,
+        train_assets,
+        validation_data=validation_assets,
         epochs=INITIAL_EPOCHS,
         class_weight=class_weights,
         callbacks=initial_callbacks,
@@ -836,7 +836,7 @@ def train_single_model(
         )
 
         initial_metrics = initial_best_model.evaluate(
-            validation_dataset,
+            validation_assets,
             verbose=0,
         )
 
@@ -860,8 +860,8 @@ def train_single_model(
                 model=model,
                 base_model=base_model,
                 model_name=safe_name,
-                train_dataset=train_dataset,
-                validation_dataset=validation_dataset,
+                train_assets=train_assets,
+                validation_assets=validation_assets,
                 class_weights=class_weights,
             )
         )
@@ -874,7 +874,7 @@ def train_single_model(
 
             fine_tune_metrics = (
                 fine_tuned_model.evaluate(
-                    validation_dataset,
+                    validation_assets,
                     verbose=0,
                 )
             )

@@ -22,7 +22,7 @@ from sklearn.metrics import (
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 
-DATA_DIR = Path("dataset")
+DATA_DIR = Path("assets")
 MODELS_DIR = Path("models")
 RESULTS_DIR = Path("results")
 
@@ -99,28 +99,28 @@ def load_image(path, label):
     return image, label
 
 
-def create_dataset(paths, labels):
-    dataset = tf.data.Dataset.from_tensor_slices(
+def create_assets(paths, labels):
+    assets = tf.data.Dataset.from_tensor_slices(
         (
             np.asarray(paths, dtype=str),
             np.asarray(labels, dtype=np.int32),
         )
     )
 
-    dataset = dataset.map(
+    assets = assets.map(
         load_image,
         num_parallel_calls=tf.data.AUTOTUNE,
     )
 
-    dataset = dataset.batch(
+    assets = assets.batch(
         BATCH_SIZE
     )
 
-    dataset = dataset.prefetch(
+    assets = assets.prefetch(
         tf.data.AUTOTUNE
     )
 
-    return dataset
+    return assets
 
 
 def reconstruct_test_set(split_data):
@@ -250,7 +250,7 @@ def save_confusion_matrix(
 def evaluate_model(
     model_name,
     model_path,
-    test_dataset,
+    test_assets,
 ):
     print("\n")
     print("=" * 80)
@@ -277,7 +277,7 @@ def evaluate_model(
         )
 
     loss, accuracy = model.evaluate(
-        test_dataset,
+        test_assets,
         verbose=1,
     )
 
@@ -285,7 +285,7 @@ def evaluate_model(
     y_pred = []
     probabilities = []
 
-    for images, labels in test_dataset:
+    for images, labels in test_assets:
 
         preds = model.predict(
             images,
@@ -571,7 +571,7 @@ def main():
         f"\nTest images: {len(test_paths)}"
     )
 
-    test_dataset = create_dataset(
+    test_assets = create_assets(
         test_paths,
         test_labels,
     )
@@ -587,7 +587,7 @@ def main():
         result = evaluate_model(
             model_name=model_name,
             model_path=model_path,
-            test_dataset=test_dataset,
+            test_assets=test_assets,
         )
 
         results.append(
