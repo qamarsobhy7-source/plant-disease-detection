@@ -4,17 +4,16 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import os
 
 # ==========================================
-# 1. إعدادات المشروع والمتغيرات الأساسية
+# 1. Configuration & Basic Variables
 # ==========================================
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 EPOCHS = 25
-DATA_DIR = "dataset"  # مسار مجلد البيانات
+DATA_DIR = "dataset"
 MODEL_SAVE_PATH = "plant_disease_model.h5"
 
-print("--- الخطوة 1 & 2: تحميل وتقسيم البيانات (Train / Validation / Test) ---")
+print("--- Step 1 & 2: Loading and Splitting Dataset (Train / Validation / Test) ---")
 
-# تحميل بيانات التدريب والتحقق (80% تدريب، 20% تحقق)
 train_ds = tf.keras.utils.image_dataset_from_directory(
     DATA_DIR,
     validation_split=0.2,
@@ -34,17 +33,16 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 )
 
 class_names = train_ds.class_names
-print(f"الفئات المكتشفة في الداتا سيت: {class_names}")
+print(f"Detected Classes: {class_names}")
 
-# تقسيم جزء من Validation ليكون Test حقيقي للتقييم النهائي
 val_batches = tf.data.experimental.cardinality(val_ds)
 test_ds = val_ds.take(val_batches // 2)
 val_ds = val_ds.skip(val_batches // 2)
 
 # ==========================================
-# 3. المعالجة وتعزيز البيانات (Preprocessing & Data Augmentation)
+# 3. Preprocessing & Data Augmentation
 # ==========================================
-print("--- الخطوة 3 & 4: المعالجة وتعزيز البيانات ---")
+print("--- Step 3 & 4: Preprocessing & Data Augmentation ---")
 
 normalization_layer = layers.Rescaling(1./255)
 
@@ -64,9 +62,9 @@ val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
 # ==========================================
-# 5. بناء هيكل الـ CNN Model
+# 5. Build CNN Model Architecture
 # ==========================================
-print("--- الخطوة 5: بناء نموذج الـ CNN ---")
+print("--- Step 5: Building CNN Model ---")
 
 model = models.Sequential([
     layers.Input(shape=(128, 128, 3)),
@@ -99,7 +97,7 @@ model.compile(
 )
 
 # ==========================================
-# 6. إعداد الـ Callbacks لحفظ أفضل نموذج
+# 6. Setup Callbacks for Best Model
 # ==========================================
 checkpoint = ModelCheckpoint(
     MODEL_SAVE_PATH,
@@ -119,9 +117,9 @@ early_stopping = EarlyStopping(
 callbacks_list = [checkpoint, early_stopping]
 
 # ==========================================
-# 7 & 8. التدريب والتحقق (Training & Validation)
+# 7 & 8. Training & Validation
 # ==========================================
-print("--- الخطوة 6 & 7: بدء التدريب والتحقق الفعلي ---")
+print("--- Step 6 & 7: Starting Model Training & Validation ---")
 
 history = model.fit(
     train_ds,
@@ -131,9 +129,9 @@ history = model.fit(
 )
 
 # ==========================================
-# 9. التقييم النهائي (Evaluation على الـ Test Set)
+# 9. Final Evaluation on Test Set
 # ==========================================
-print("--- الخطوة 8: تقييم النموذج على مجموعة الاختبار (Test Evaluation) ---")
+print("--- Step 8: Evaluating Model on Test Set ---")
 
 best_model = tf.keras.models.load_model(MODEL_SAVE_PATH)
 
@@ -141,11 +139,13 @@ test_loss, test_accuracy = best_model.evaluate(test_ds)
 print(f"Test Loss: {test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 
-print(f"--- الخطوة 10: تم حفظ أفضل نموذج بنجاح في المسار: {MODEL_SAVE_PATH} ---")
+print(f"--- Step 10: Best model successfully saved at: {MODEL_SAVE_PATH} ---")
+
+# ==========================================
+# 10. Plot & Save Training Curves
+# ==========================================
 import matplotlib.pyplot as plt
 
-
-# 1. Extract training history
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
 
@@ -154,7 +154,7 @@ val_loss = history.history['val_loss']
 
 epochs_range = range(len(acc))
 
-# 2. Plot and save Accuracy Curve
+# Plot and save Accuracy Curve
 plt.figure(figsize=(8, 8))
 plt.plot(epochs_range, acc, label='Training Accuracy')
 plt.plot(epochs_range, val_acc, label='Validation Accuracy')
@@ -163,7 +163,7 @@ plt.title('Training and Validation Accuracy')
 plt.savefig('accuracy.png')
 plt.close()
 
-# 3. Plot and save Loss Curve
+# Plot and save Loss Curve
 plt.figure(figsize=(8, 8))
 plt.plot(epochs_range, loss, label='Training Loss')
 plt.plot(epochs_range, val_loss, label='Validation Loss')
@@ -173,3 +173,4 @@ plt.savefig('loss.png')
 plt.close()
 
 print("Training curves (accuracy.png & loss.png) saved successfully!")
+
