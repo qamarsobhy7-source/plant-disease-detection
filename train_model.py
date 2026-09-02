@@ -1,7 +1,9 @@
 import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras import layers, models, Model
+from tensorflow.keras.applications import MobileNetV2, EfficientNetB0
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 import os
+import matplotlib.pyplot as plt
 
 # ==========================================
 # 1. Configuration & Basic Variables
@@ -9,201 +11,6 @@ import os
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 EPOCHS = 25
-DATA_DIR = "dataset"
-MODEL_SAVE_PATH = "plant_disease_model.h5"
-
-print("--- Step 1 & 2: Loading and Splitting Dataset (Train / Validation / Test) ---")
-
-train_ds = tf.keras.utils.image_dataset_from_directory(
-    DATA_DIR,
-    validation_split=0.2,
-    subset="training",
-    seed=123,
-    image_size=IMG_SIZE,
-    batch_size=BATCH_SIZE
-)
-
-val_ds = tf.keras.utils.image_dataset_from_directory(
-    DATA_DIR,
-    validation_split=0.2,
-    subset="validation",
-    seed=123,
-    image_size=IMG_SIZE,
-    batch_size=BATCH_SIZE
-)
-
-class_names = train_ds.class_names
-print(f"Detected Classes: {class_names}")
-
-val_batches = tf.data.experimental.cardinality(val_ds)
-test_ds = val_ds.take(val_batches // 2)
-val_ds = val_ds.skip(val_batches // 2)
-
-# ==========================================
-# 3. Preprocessing & Data Augmentation
-# ==========================================
-print("--- Step 3 & 4: Preprocessing & Data Augmentation ---")
-
-normalization_layer = layers.Rescaling(1./255)
-
-# ==========================================
-# 3. Preprocessing & Data Augmentation
-# ==========================================
-print("--- Step 3 & 4: Preprocessing & Comprehensive Data Augmentation ---")
-
-normalization_layer = layers.Rescaling(1./255)
-
-# Comprehensive Data Augmentation pipeline to prevent overfitting
-data_augmentation = tf.keras.Sequential([
-    layers.RandomFlip("horizontal"),                    # Horizontal Flip
-    layers.RandomRotation(0.2),                         # Rotation (approx 20%)
-    layers.RandomZoom(0.2),                             # Zoom in/out
-    layers.RandomTranslation(height_factor=0.2, width_factor=0.2), # Width/Height Shift
-    layers.RandomBrightness(factor=0.2),                # Brightness variation
-])
-
-# Apply Augmentation and Normalization ONLY to training data
-train_ds = train_ds.map(lambda x, y: (normalization_layer(data_augmentation(x, training=True)), y))
-val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
-test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
-
-
-train_ds = train_ds.map(lambda x, y: (normalization_layer(data_augmentation(x, training=True)), y))
-val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
-test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
-
-AUTOTUNE = tf.data.AUTOTUNE
-train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
-
-# ==========================================
-# 5. Build CNN Model Architecture
-# ==========================================
-print("--- Step 5: Building CNN Model ---")
-
-model = models.Sequential([
-    layers.Input(shape=(128, 128, 3)),
-    
-    # Block 1
-    layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
-    layers.MaxPooling2D((2, 2)),
-    
-    # Block 2
-    layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
-    layers.MaxPooling2D((2, 2)),
-    
-    # Block 3
-    layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
-    layers.MaxPooling2D((2, 2)),
-    
-    # Classifier Head
-    layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.Dropout(0.5),
-    layers.Dense(len(class_names), activation='softmax')
-])
-
-model.summary()
-
-model.compile(
-    optimizer='adam',
-    loss='sparse_categorical_crossentropy',
-    metrics=['accuracy']
-)
-
-# ==========================================
-# 6. Setup Callbacks for Best Model
-# ==========================================
-checkpoint = ModelCheckpoint(
-    MODEL_SAVE_PATH,
-    monitor='val_accuracy',
-    save_best_only=True,
-    mode='max',
-    verbose=1
-)
-
-early_stopping = EarlyStopping(
-    monitor='val_loss',
-    patience=5,
-    restore_best_weights=True,
-    verbose=1
-)
-
-callbacks_list = [checkpoint, early_stopping]
-
-# ==========================================
-# 7 & 8. Training & Validation
-# ==========================================
-print("--- Step 6 & 7: Starting Model Training & Validation ---")
-
-history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=EPOCHS,
-    callbacks=callbacks_list
-)
-
-# ==========================================
-# 9. Final Evaluation on Test Set
-# ==========================================
-print("--- Step 8: Evaluating Model on Test Set ---")
-
-best_model = tf.keras.models.load_model(MODEL_SAVE_PATH)
-
-test_loss, test_accuracy = best_model.evaluate(test_ds)
-print(f"Test Loss: {test_loss:.4f}")
-print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
-
-print(f"--- Step 10: Best model successfully saved at: {MODEL_SAVE_PATH} ---")
-
-# ==========================================
-# 10. Plot & Save Training Curves
-# ==========================================
-import matplotlib.pyplot as plt
-
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-
-epochs_range = range(len(acc))
-
-# Plot and save Accuracy Curve
-plt.figure(figsize=(8, 8))
-plt.plot(epochs_range, acc, label='Training Accuracy')
-plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-plt.legend(loc='lower right')
-plt.title('Training and Validation Accuracy')
-plt.savefig('accuracy.png')
-plt.close()
-
-# Plot and save Loss Curve
-plt.figure(figsize=(8, 8))
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
-plt.legend(loc='upper right')
-plt.title('Training and Validation Loss')
-plt.savefig('loss.png')
-plt.close()
-
-print("Training curves (accuracy.png & loss.png) saved successfully!")
-
-
-import tensorflow as tf
-from tensorflow.keras import layers, models, Model
-from tensorflow.keras.applications import MobileNetV2, EfficientNetB0
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-import os
-import matplotlib.pyplot as plt
-
-# ==========================================
-# 1. Configuration & Basic Variables
-# ==========================================
-IMG_SIZE = (128, 128)
-BATCH_SIZE = 32
-EPOCHS = 20
 DATA_DIR = "dataset"
 
 print("--- Step 1 & 2: Loading and Splitting Dataset (Train / Validation / Test) ---")
@@ -235,9 +42,9 @@ test_ds = val_ds.take(val_batches // 2)
 val_ds = val_ds.skip(val_batches // 2)
 
 # ==========================================
-# 3. Preprocessing & Data Augmentation
+# 3. Preprocessing & Comprehensive Data Augmentation
 # ==========================================
-print("--- Step 3 & 4: Preprocessing & Data Augmentation ---")
+print("--- Step 3 & 4: Preprocessing & Comprehensive Data Augmentation ---")
 
 normalization_layer = layers.Rescaling(1./255)
 
@@ -245,6 +52,8 @@ data_augmentation = tf.keras.Sequential([
     layers.RandomFlip("horizontal_and_vertical"),
     layers.RandomRotation(0.2),
     layers.RandomZoom(0.2),
+    layers.RandomTranslation(height_factor=0.2, width_factor=0.2),
+    layers.RandomBrightness(factor=0.2),
 ])
 
 train_ds = train_ds.map(lambda x, y: (normalization_layer(data_augmentation(x, training=True)), y))
@@ -256,8 +65,11 @@ train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 test_ds = test_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
-# Helper function for callbacks
+# ==========================================
+# 4. Advanced Callbacks Configuration
+# ==========================================
 def get_callbacks(model_path):
+    # حفظ أفضل نموذج بناءً على الـ validation accuracy
     checkpoint = ModelCheckpoint(
         model_path,
         monitor='val_accuracy',
@@ -265,16 +77,25 @@ def get_callbacks(model_path):
         mode='max',
         verbose=1
     )
+    # إيقاف التدريب عند ثبات الـ validation loss لمنع الـ Overfitting
     early_stopping = EarlyStopping(
         monitor='val_loss',
-        patience=4,
+        patience=5,
         restore_best_weights=True,
         verbose=1
     )
-    return [checkpoint, early_stopping]
+    # تقليل معدل التعلم (Learning Rate) عندما يتوقف التحسن
+    reduce_lr = ReduceLROnPlateau(
+        monitor='val_loss',
+        factor=0.2,
+        patience=3,
+        min_lr=1e-6,
+        verbose=1
+    )
+    return [checkpoint, early_stopping, reduce_lr]
 
 # ==========================================
-# 4. Model 1: Custom CNN
+# 5. Model 1: Custom CNN
 # ==========================================
 print("\n=== Training Model 1: Custom CNN ===")
 custom_cnn = models.Sequential([
@@ -292,10 +113,15 @@ custom_cnn = models.Sequential([
 ])
 
 custom_cnn.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-history_cnn = custom_cnn.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=get_callbacks("custom_cnn_model.h5"))
+history_cnn = custom_cnn.fit(
+    train_ds, 
+    validation_data=val_ds, 
+    epochs=EPOCHS, 
+    callbacks=get_callbacks("custom_cnn_model.h5")
+)
 
 # ==========================================
-# 5. Model 2: MobileNetV2 (Transfer Learning)
+# 6. Model 2: MobileNetV2 (Transfer Learning)
 # ==========================================
 print("\n=== Training Model 2: MobileNetV2 ===")
 base_mobilenet = MobileNetV2(input_shape=(128, 128, 3), include_top=False, weights='imagenet')
@@ -310,10 +136,15 @@ outputs = layers.Dense(num_classes, activation='softmax')(x)
 
 mobilenet_model = Model(inputs, outputs)
 mobilenet_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-history_mobilenet = mobilenet_model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=get_callbacks("mobilenetv2_model.h5"))
+history_mobilenet = mobilenet_model.fit(
+    train_ds, 
+    validation_data=val_ds, 
+    epochs=EPOCHS, 
+    callbacks=get_callbacks("mobilenetv2_model.h5")
+)
 
 # ==========================================
-# 6. Model 3: EfficientNetB0 (Transfer Learning)
+# 7. Model 3: EfficientNetB0 (Transfer Learning)
 # ==========================================
 print("\n=== Training Model 3: EfficientNetB0 ===")
 base_efficientnet = EfficientNetB0(input_shape=(128, 128, 3), include_top=False, weights='imagenet')
@@ -328,12 +159,17 @@ outputs = layers.Dense(num_classes, activation='softmax')(x)
 
 efficientnet_model = Model(inputs, outputs)
 efficientnet_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-history_efficientnet = efficientnet_model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=get_callbacks("efficientnet_model.h5"))
+history_efficientnet = efficientnet_model.fit(
+    train_ds, 
+    validation_data=val_ds, 
+    epochs=EPOCHS, 
+    callbacks=get_callbacks("efficientnet_model.h5")
+)
 
 print("\n--- All models trained and saved successfully! ---")
 
 # ==========================================
-# 7. Final Evaluation & Comparison
+# 8. Final Evaluation & Comparison
 # ==========================================
 models_dict = {
     "Custom CNN": "custom_cnn_model.h5",
@@ -351,7 +187,7 @@ for name, path in models_dict.items():
 print("============================================================")
 
 # ==========================================
-# 8. Plot & Save Training Curves (for Custom CNN as base example)
+# 9. Plot & Save Training Curves
 # ==========================================
 acc = history_cnn.history['accuracy']
 val_acc = history_cnn.history['val_accuracy']
@@ -376,3 +212,4 @@ plt.savefig('loss.png')
 plt.close()
 
 print("Training curves (accuracy.png & loss.png) saved successfully!")
+
