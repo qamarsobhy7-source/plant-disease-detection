@@ -1,11 +1,28 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 
-# 1. قائمة أسماء الأمراض (Mapping)
+# Set page configuration
+st.set_page_config(
+    page_title="Plant Disease Detection",
+    page_icon="🌱",
+    layout="centered"
+)
+
+# Load the trained model with caching for performance
+@st.cache_resource
+def load_model():
+    try:
+        model = tf.keras.models.load_model('plant_disease_model.h5')
+        return model
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        return None
+
+model = load_model()
+
+# Define readable class labels mapping
 class_names = [
     "Healthy Plant",
     "Early Blight",
@@ -14,40 +31,43 @@ class_names = [
     "Leaf Spot"
 ]
 
-@st.cache_resource
-def get_model():
-    return load_model("plant_disease_model.h5")
-
-model = get_model()
-
-# 2. دالة التنبؤ والتحويل لاسم المرض
-def predict_plant_disease(image_obj):
-    img = image_obj.resize((128, 128))
-    img_array = tf.keras.preprocessing.image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    predictions = model.predict(img_array)
-    predicted_class_index = np.argmax(predictions[0])
-    confidence = float(np.max(predictions[0])) * 100
-    predicted_label = class_names[predicted_class_index]
-    
-    return predicted_label, confidence
-
-# 3. واجهة الاستخدام (Streamlit UI)
+# App UI Design
 st.title("🌱 Plant Disease Detection System")
-st.write("ارفعي صورة ورقة نبات عشان النظام يقوم بفحصها.")
+st.write("Upload an image of a plant leaf to detect and classify potential diseases instantly using Deep Learning.")
 
-uploaded_file = st.file_uploader("اختر صورة ورقة نبات...", type=["jpg", "jpeg", "png"])
+st.markdown("---")
+
+# File uploader with validation for images only
+uploaded_file = st.file_uploader("Choose a plant leaf image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image_obj = Image.open(uploaded_file)
-    st.image(image_obj, caption='الصورة المرفوعة', use_column_width=True)
-    
-    if st.button('افحص الصورة'):
-        with st.spinner('جارٍ التحليل...'):
-            # استخدام الدالة اللي بتطلع اسم المرض الحقيقي ونسبة الثقة
-            predicted_label, confidence = predict_plant_disease(image_obj)
+    try:
+        # Open and display the uploaded image
+        image = Image.open(uploaded_file)
+        st.image(image, caption='Uploaded Leaf Image', use_container_width=True)
+        
+        if model is not None:
+            with st.spinner('Analyzing the leaf image...'):
+                # Preprocessing the image
+                img = image.resize((128, 128))
+                img_array = tf.keras.preprocessing.image.img_to_array(img)
+                img_array = np.expand_dims(img_array, axis=0)
+                
+                # Optional: Normalization if required by your training pipeline
+                # img_array = img_array / 255.0
+
+                # Make prediction
+                predictions = model.predict(img_array)
+                predicted_class_index = np.argmax(predictions[0])
+                confidence = float(np.max(predictions[0])) * 100
+                
+                predicted_label = class_names[predicted_class_index]
+                
+            # Display results professionally
+            st.success("Analysis Complete!")
+            st.metric(label="Predicted Condition", value=predicted_label)
+            st.metric(label="Confidence Score", value=f"{confidence:.2f}%")
             
-            st.success(f"🌿 النتيجة المتوقعة: {predicted_label}")
-            st.info(f"📊 نسبة الثقة (Confidence): {confidence:.2f}%")
-            
+    except Exception as e:
+        st.error(f"An error occurred while processing the image: {e}")
+        
