@@ -1,46 +1,33 @@
-import os
 import json
+from pathlib import Path
 
 import numpy as np
 import streamlit as st
-import tensorflow as tf
 from PIL import Image
-
-
-# ============================================================
-# Page Configuration
-# ============================================================
-
-st.set_page_config(
-    page_title="Plant Disease Detection",
-    page_icon="🌿",
-    layout="centered",
-)
+import tensorflow as tf
 
 
 # ============================================================
 # Configuration
 # ============================================================
 
-MODELS_DIR = "models"
-
-IMAGE_SIZE = (
-    128,
-    128,
+st.set_page_config(
+    page_title="Plant Disease Detection",
+    page_icon=None,
+    layout="wide",
 )
 
-CONFIDENCE_THRESHOLD = 60.0
+IMG_SIZE = (128, 128)
+CONFIDENCE_THRESHOLD = 0.60
 
+MODELS_DIR = Path("models")
+CLASS_NAMES_FILE = MODELS_DIR / "class_names.json"
 
-# ============================================================
-# Model Paths
-# ============================================================
-
-model_files = {
-    "Best Model": "best_model.keras",
-    "Custom CNN": "custom_cnn.keras",
-    "MobileNetV2": "mobilenetv2.keras",
-    "EfficientNetB0": "efficientnetb0.keras",
+MODEL_FILES = {
+    "Best Model": MODELS_DIR / "best_model.keras",
+    "Custom CNN": MODELS_DIR / "custom_cnn.keras",
+    "MobileNetV2": MODELS_DIR / "mobilenetv2.keras",
+    "EfficientNetB0": MODELS_DIR / "efficientnetb0.keras",
 }
 
 
@@ -50,36 +37,30 @@ model_files = {
 
 @st.cache_data
 def load_class_names():
+    if not CLASS_NAMES_FILE.exists():
+        raise FileNotFoundError(
+            "class_names.json was not found. "
+            "Run train_model.py first."
+        )
 
-    class_names_path = os.path.join(
-        MODELS_DIR,
-        "class_names.json",
-    )
+    with open(
+        CLASS_NAMES_FILE,
+        "r",
+        encoding="utf-8",
+    ) as file:
+        class_names = json.load(file)
 
-    if not os.path.exists(
-        class_names_path
-    ):
-        return None
+    if not isinstance(class_names, list):
+        raise ValueError(
+            "class_names.json must contain a list."
+        )
 
-    try:
+    if len(class_names) == 0:
+        raise ValueError(
+            "class_names.json contains no classes."
+        )
 
-        with open(
-            class_names_path,
-            "r",
-            encoding="utf-8",
-        ) as file:
-
-            class_names = json.load(
-                file
-            )
-
-        return class_names
-
-    except Exception:
-        return None
-
-
-class_names = load_class_names()
+    return class_names
 
 
 # ============================================================
@@ -87,137 +68,235 @@ class_names = load_class_names()
 # ============================================================
 
 @st.cache_resource
-def load_model(
-    model_path,
-):
-
-    if not os.path.exists(
-        model_path
-    ):
-        return None
-
-    try:
-
-        model = tf.keras.models.load_model(
-            model_path
-        )
-
-        return model
-
-    except Exception as error:
-
-        st.error(
-            f"Unable to load model: {error}"
-        )
-
-        return None
+def load_selected_model(model_path):
+    return tf.keras.models.load_model(
+        model_path,
+        compile=False,
+    )
 
 
 # ============================================================
-# Sidebar
+# Prediction
 # ============================================================
 
-st.sidebar.title(
-    "Model Configuration"
-)
+def preprocess_image(image):
+    """
+    Convert the uploaded PIL image into a raw float32 tensor.
 
+    Model-specific preprocessing is embedded inside each model:
+    - Custom CNN: Rescaling 1/255
+    - MobileNetV2: preprocess_input
+    - EfficientNetB0: built-in preprocessing
+    """
 
-available_models = []
+    image = image.convert("RGB")
 
-
-for model_name, filename in model_files.items():
-
-    path = os.path.join(
-        MODELS_DIR,
-        filename,
+    image = image.resize(
+        IMG_SIZE
     )
 
-    if os.path.exists(path):
-        available_models.append(
-            model_name
-        )
-
-
-if not available_models:
-
-    st.error(
-        "No trained models were found. "
-        "Please run train_model.py first."
+    image_array = np.asarray(
+        image,
+        dtype=np.float32,
     )
 
-    st.stop()
-
-
-model_choice = st.sidebar.selectbox(
-    "Select Model Architecture",
-    available_models,
-)
-
-
-selected_filename = model_files[
-    model_choice
-]
-
-
-selected_model_path = os.path.join(
-    MODELS_DIR,
-    selected_filename,
-)
-
-
-model = load_model(
-    selected_model_path
-)
-
-
-# ============================================================
-# Validate Class Names
-# ============================================================
-
-if class_names is None:
-
-    st.error(
-        "class_names.json was not found. "
-        "Please run train_model.py first."
+    image_array = np.expand_dims(
+        image_array,
+        axis=0,
     )
 
-    st.stop()
+    return image_array
 
 
-if model is not None:
-
-    model_output_classes = (
-        model.output_shape[-1]
+def predict_image(model, image, class_names):
+    image_array = preprocess_image(
+        image
     )
 
-    if model_output_classes != len(
+    probabilities = model.predict(
+        image_array,
+        verbose=0,
+    )[0]
+
+    if len(probabilities) != len(
         class_names
     ):
-
-        st.error(
-            "Model output classes do not match "
-            "class_names.json."
+        raise ValueError(
+            "The model output does not match "
+            "the number of classes."
         )
 
-        st.stop()
+    predicted_index = int(
+        np.argmax(probabilities)
+    )
+
+    confidence = float(
+        probabilities[predicted_index]
+    )
+
+    predicted_class = class_names[
+        predicted_index
+    ]
+
+    ranked_indices = np.argsort(
+        probabilities
+    )[::-1]
+
+    top_predictions = []
+
+    for index in ranked_indices[:3]:
+
+        top_predictions.append(
+            {
+                "class": class_names[
+                    int(index)
+                ],
+                "probability": float(
+                    probabilities[index]
+                ),
+            }
+        )
+
+    return (
+        predicted_class,
+        confidence,
+        top_predictions,
+        probabilities,
+    )
 
 
 # ============================================================
-# Application Header
+# Page Header
 # ============================================================
 
 st.title(
     "Plant Disease Detection System"
 )
 
-
 st.write(
-    f"Using **{model_choice}** "
-    "for plant leaf classification."
+    "Upload a plant leaf image to classify its "
+    "health condition using a trained deep learning model."
+)
+
+st.divider()
+
+
+# ============================================================
+# Load Classes
+# ============================================================
+
+try:
+    class_names = load_class_names()
+
+except Exception as error:
+
+    st.error(
+        str(error)
+    )
+
+    st.stop()
+
+
+# ============================================================
+# Available Models
+# ============================================================
+
+available_models = {
+    name: path
+    for name, path in MODEL_FILES.items()
+    if path.exists()
+}
+
+if not available_models:
+
+    st.error(
+        "No trained models were found in the models/ directory."
+    )
+
+    st.info(
+        "Run `python train_model.py` first."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# Sidebar
+# ============================================================
+
+st.sidebar.header(
+    "Model Selection"
+)
+
+selected_model_name = st.sidebar.selectbox(
+    "Choose a model",
+    list(available_models.keys()),
+)
+
+selected_model_path = available_models[
+    selected_model_name
+]
+
+
+st.sidebar.write(
+    f"Model file: `{selected_model_path}`"
+)
+
+st.sidebar.write(
+    f"Classes: {len(class_names)}"
+)
+
+st.sidebar.write(
+    f"Image size: {IMG_SIZE[0]} × {IMG_SIZE[1]}"
 )
 
 
-st.markdown("---")
+# ============================================================
+# Load Selected Model
+# ============================================================
+
+try:
+
+    model = load_selected_model(
+        str(selected_model_path)
+    )
+
+except Exception as error:
+
+    st.error(
+        f"Failed to load the selected model: {error}"
+    )
+
+    st.stop()
+
+
+# ============================================================
+# Model Validation
+# ============================================================
+
+try:
+
+    output_classes = model.output_shape[-1]
+
+    if output_classes != len(
+        class_names
+    ):
+        st.error(
+            "Model/class mismatch detected. "
+            f"The model outputs {output_classes} classes, "
+            f"while class_names.json contains "
+            f"{len(class_names)} classes."
+        )
+
+        st.stop()
+
+except Exception as error:
+
+    st.error(
+        f"Could not validate the model: {error}"
+    )
+
+    st.stop()
 
 
 # ============================================================
@@ -225,7 +304,7 @@ st.markdown("---")
 # ============================================================
 
 uploaded_file = st.file_uploader(
-    "Choose a plant leaf image",
+    "Upload a plant leaf image",
     type=[
         "jpg",
         "jpeg",
@@ -234,274 +313,213 @@ uploaded_file = st.file_uploader(
 )
 
 
-# ============================================================
-# Prediction
-# ============================================================
-
 if uploaded_file is not None:
 
     try:
-
-        # ----------------------------------------------------
-        # Open Image
-        # ----------------------------------------------------
 
         image = Image.open(
             uploaded_file
         ).convert("RGB")
 
+    except Exception as error:
+
+        st.error(
+            f"Could not read the uploaded image: {error}"
+        )
+
+        st.stop()
+
+    # --------------------------------------------------------
+    # Display Image
+    # --------------------------------------------------------
+
+    col1, col2 = st.columns(
+        2
+    )
+
+    with col1:
+
+        st.subheader(
+            "Uploaded Image"
+        )
 
         st.image(
             image,
-            caption="Uploaded Leaf Image",
             use_container_width=True,
         )
 
+    # --------------------------------------------------------
+    # Prediction
+    # --------------------------------------------------------
 
-        # ----------------------------------------------------
-        # Model Check
-        # ----------------------------------------------------
+    try:
 
-        if model is None:
-
-            st.error(
-                f"Model file was not found: "
-                f"{selected_model_path}"
-            )
-
-            st.stop()
-
-
-        # ----------------------------------------------------
-        # Preprocessing
-        # ----------------------------------------------------
-
-        with st.spinner(
-            f"Analyzing using {model_choice}..."
-        ):
-
-            resized_image = image.resize(
-                IMAGE_SIZE
-            )
-
-
-            image_array = np.asarray(
-                resized_image,
-                dtype=np.float32,
-            )
-
-
-            image_array = np.expand_dims(
-                image_array,
-                axis=0,
-            )
-
-
-            # Important:
-            # Preprocessing is already included
-            # inside each trained model.
-            #
-            # Custom CNN:
-            # 0-255 -> 0-1
-            #
-            # MobileNetV2:
-            # MobileNetV2 preprocessing
-            #
-            # EfficientNetB0:
-            # Uses its internal preprocessing.
-
-
-            predictions = model.predict(
-                image_array,
-                verbose=0,
-            )[0]
-
-
-        # ----------------------------------------------------
-        # Prediction Results
-        # ----------------------------------------------------
-
-        predicted_class_index = int(
-            np.argmax(
-                predictions
-            )
+        (
+            predicted_class,
+            confidence,
+            top_predictions,
+            probabilities,
+        ) = predict_image(
+            model,
+            image,
+            class_names,
         )
-
-
-        confidence = float(
-            predictions[
-                predicted_class_index
-            ]
-        ) * 100
-
-
-        predicted_label = class_names[
-            predicted_class_index
-        ]
-
-
-        # ----------------------------------------------------
-        # Analysis Complete
-        # ----------------------------------------------------
-
-        st.success(
-            "Analysis Complete"
-        )
-
-
-        st.markdown(
-            "### Prediction Result"
-        )
-
-
-        st.markdown(
-            f"**Predicted Condition:** "
-            f"{predicted_label}"
-        )
-
-
-        st.markdown(
-            f"**Confidence:** "
-            f"{confidence:.1f}%"
-        )
-
-
-        # ----------------------------------------------------
-        # Confidence Warning
-        # ----------------------------------------------------
-
-        if confidence < CONFIDENCE_THRESHOLD:
-
-            st.warning(
-                "The model has low confidence "
-                "in this prediction. "
-                "Please upload a clearer image "
-                "with the leaf visible."
-            )
-
-
-        # ----------------------------------------------------
-        # Top Predictions
-        # ----------------------------------------------------
-
-        st.markdown("---")
-
-
-        st.markdown(
-            "### Top Predictions"
-        )
-
-
-        sorted_indices = np.argsort(
-            predictions
-        )[::-1]
-
-
-        top_k = min(
-            3,
-            len(sorted_indices),
-        )
-
-
-        for rank in range(
-            top_k
-        ):
-
-            index = int(
-                sorted_indices[rank]
-            )
-
-
-            probability = float(
-                predictions[index]
-            ) * 100
-
-
-            class_name = class_names[
-                index
-            ]
-
-
-            st.write(
-                f"{rank + 1}. "
-                f"**{class_name}** — "
-                f"{probability:.1f}%"
-            )
-
-
-        # ----------------------------------------------------
-        # Probability Distribution
-        # ----------------------------------------------------
-
-        st.markdown("---")
-
-
-        st.markdown(
-            "### Class Probabilities"
-        )
-
-
-        for index in sorted_indices:
-
-            probability = float(
-                predictions[index]
-            )
-
-
-            st.progress(
-                probability
-            )
-
-
-            st.caption(
-                f"{class_names[index]}: "
-                f"{probability * 100:.1f}%"
-            )
-
 
     except Exception as error:
 
         st.error(
-            f"An error occurred while processing "
-            f"the image: {error}"
+            f"Prediction failed: {error}"
+        )
+
+        st.stop()
+
+    # --------------------------------------------------------
+    # Main Prediction
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.subheader(
+            "Prediction"
+        )
+
+        st.write(
+            f"**Predicted Class:** {predicted_class}"
+        )
+
+        st.write(
+            f"**Confidence:** "
+            f"{confidence * 100:.2f}%"
+        )
+
+        if confidence >= CONFIDENCE_THRESHOLD:
+
+            st.success(
+                "The model produced a prediction "
+                "above the configured confidence threshold."
+            )
+
+        else:
+
+            st.warning(
+                "The model confidence is below 60%. "
+                "Treat this prediction as uncertain."
+            )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # Top 3 Predictions
+    # --------------------------------------------------------
+
+    st.subheader(
+        "Top 3 Predictions"
+    )
+
+    top_columns = st.columns(
+        len(top_predictions)
+    )
+
+    for column, prediction in zip(
+        top_columns,
+        top_predictions,
+    ):
+
+        with column:
+
+            st.metric(
+                prediction["class"],
+                f"{prediction['probability'] * 100:.2f}%",
+            )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # All Class Probabilities
+    # --------------------------------------------------------
+
+    st.subheader(
+        "Class Probabilities"
+    )
+
+    for class_name, probability in zip(
+        class_names,
+        probabilities,
+    ):
+
+        st.write(
+            f"**{class_name}** — "
+            f"{probability * 100:.2f}%"
+        )
+
+        st.progress(
+            float(probability)
         )
 
 
 # ============================================================
-# Information Section
+# Supported Classes
 # ============================================================
 
-st.markdown("---")
+st.divider()
 
+st.subheader(
+    "Supported Classes"
+)
 
-with st.expander(
-    "About the Models"
-):
+for class_name in class_names:
 
     st.write(
-        """
-This application supports three trained deep learning architectures:
-
-- Custom CNN
-- MobileNetV2
-- EfficientNetB0
-
-The application can also load the automatically selected Best Model.
-
-The Best Model is selected during training using validation performance.
-The test dataset is used only for final model evaluation.
-"""
+        f"- {class_name}"
     )
 
 
-with st.expander(
-    "Supported Classes"
-):
+# ============================================================
+# Model Information
+# ============================================================
 
-    for index, class_name in enumerate(
-        class_names
-    ):
+st.divider()
 
-        st.write(
-            f"{index}: {class_name}"
+st.subheader(
+    "Model Information"
 )
+
+model_information = {
+    "Best Model": (
+        "The model selected during training using "
+        "validation accuracy."
+    ),
+    "Custom CNN": (
+        "A custom convolutional neural network "
+        "built specifically for the project."
+    ),
+    "MobileNetV2": (
+        "A transfer-learning model initialized "
+        "with ImageNet weights and fine-tuned."
+    ),
+    "EfficientNetB0": (
+        "An EfficientNetB0 transfer-learning model "
+        "initialized with ImageNet weights and fine-tuned."
+    ),
+}
+
+st.write(
+    model_information.get(
+        selected_model_name,
+        "Trained deep learning model.",
+    )
+)
+
+
+# ============================================================
+# Disclaimer
+# ============================================================
+
+st.divider()
+
+st.caption(
+    "This application is an image-classification system "
+    "for educational and research purposes. Predictions "
+    "should not be treated as a professional agricultural "
+    "diagnosis."
+    )
