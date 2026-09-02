@@ -46,11 +46,27 @@ print("--- Step 3 & 4: Preprocessing & Data Augmentation ---")
 
 normalization_layer = layers.Rescaling(1./255)
 
+# ==========================================
+# 3. Preprocessing & Data Augmentation
+# ==========================================
+print("--- Step 3 & 4: Preprocessing & Comprehensive Data Augmentation ---")
+
+normalization_layer = layers.Rescaling(1./255)
+
+# Comprehensive Data Augmentation pipeline to prevent overfitting
 data_augmentation = tf.keras.Sequential([
-    layers.RandomFlip("horizontal_and_vertical"),
-    layers.RandomRotation(0.2),
-    layers.RandomZoom(0.2),
+    layers.RandomFlip("horizontal"),                    # Horizontal Flip
+    layers.RandomRotation(0.2),                         # Rotation (approx 20%)
+    layers.RandomZoom(0.2),                             # Zoom in/out
+    layers.RandomTranslation(height_factor=0.2, width_factor=0.2), # Width/Height Shift
+    layers.RandomBrightness(factor=0.2),                # Brightness variation
 ])
+
+# Apply Augmentation and Normalization ONLY to training data
+train_ds = train_ds.map(lambda x, y: (normalization_layer(data_augmentation(x, training=True)), y))
+val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
+test_ds = test_ds.map(lambda x, y: (normalization_layer(x), y))
+
 
 train_ds = train_ds.map(lambda x, y: (normalization_layer(data_augmentation(x, training=True)), y))
 val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y))
