@@ -142,3 +142,34 @@ print(f"Test Loss: {test_loss:.4f}")
 print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
 
 print(f"--- الخطوة 10: تم حفظ أفضل نموذج بنجاح في المسار: {MODEL_SAVE_PATH} ---")
+import matplotlib.pyplot as plt
+
+
+# 1. Extract training history
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+
+epochs_range = range(len(acc))
+
+# 2. Plot and save Accuracy Curve
+plt.figure(figsize=(8, 8))
+plt.plot(epochs_range, acc, label='Training Accuracy')
+plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+plt.legend(loc='lower right')
+plt.title('Training and Validation Accuracy')
+plt.savefig('accuracy.png')
+plt.close()
+
+# 3. Plot and save Loss Curve
+plt.figure(figsize=(8, 8))
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+plt.savefig('loss.png')
+plt.close()
+
+print("Training curves (accuracy.png & loss.png) saved successfully!")
