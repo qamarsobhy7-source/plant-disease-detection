@@ -6,7 +6,7 @@ from PIL import Image
 # Set page configuration
 st.set_page_config(
     page_title="Plant Disease Detection",
-    page_icon="🌱",
+    page_icon="🌿",
     layout="centered"
 )
 
@@ -32,7 +32,7 @@ class_names = [
 ]
 
 # App UI Design
-st.title("🌱 Plant Disease Detection System")
+st.title("🌿 Plant Disease Detection System")
 st.write("Upload an image of a plant leaf to detect and classify potential diseases instantly using Deep Learning.")
 
 st.markdown("---")
@@ -44,30 +44,35 @@ if uploaded_file is not None:
     try:
         # Open and display the uploaded image
         image = Image.open(uploaded_file)
-        st.image(image, caption='Uploaded Leaf Image', use_container_width=True)
-        
+        st.image(image, caption="Uploaded Leaf Image", use_container_width=True)
+
         if model is not None:
-            with st.spinner('Analyzing the leaf image...'):
+            with st.spinner("Analyzing the leaf image..."):
                 # Preprocessing the image
                 img = image.resize((128, 128))
                 img_array = tf.keras.preprocessing.image.img_to_array(img)
                 img_array = np.expand_dims(img_array, axis=0)
-                
-                # Optional: Normalization if required by your training pipeline
-                # img_array = img_array / 255.0
+
+                # Normalization
+                img_array = img_array / 255.0
 
                 # Make prediction
                 predictions = model.predict(img_array)
                 predicted_class_index = np.argmax(predictions[0])
                 confidence = float(np.max(predictions[0])) * 100
-                
+
                 predicted_label = class_names[predicted_class_index]
-                
-            # Display results professionally
+
+            # Display results professionally with confidence threshold check
             st.success("Analysis Complete!")
-            st.metric(label="Predicted Condition", value=predicted_label)
-            st.metric(label="Confidence Score", value=f"{confidence:.2f}%")
-            
+
+            if confidence < 60.0:
+                st.warning("⚠️ Low Confidence Score.")
+                st.warning("Please upload a clearer plant leaf image.")
+            else:
+                st.metric(label="Predicted Condition", value=predicted_label)
+                st.metric(label="Confidence Score", value=f"{confidence:.2f}%")
+
     except Exception as e:
         st.error(f"An error occurred while processing the image: {e}")
         
