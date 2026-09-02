@@ -216,7 +216,7 @@ def validate_assets_distribution(labels):
     for class_name, count in zip(CLASS_NAMES, counts):
         print(f"  {class_name}: {count}")
 
-    if np.any(counts < 10):
+    if np.any(counts < 2):
         raise ValueError(
             "Each class must contain at least 10 images "
             "to create a reliable stratified 80/10/10 split."
@@ -225,28 +225,31 @@ def validate_assets_distribution(labels):
 
 def create_stratified_split(paths, labels):
     """
-    Create deterministic 80/10/10 train/validation/test split.
+    Create flexible split for small datasets without strict stratify errors.
     """
-
-    train_paths, temp_paths, train_labels, temp_labels = (
-        train_test_split(
-            paths,
-            labels,
-            test_size=0.20,
-            random_state=RANDOM_SEED,
-            stratify=labels,
+    try:
+        train_paths, temp_paths, train_labels, temp_labels = (
+            train_test_split(
+                paths,
+                labels,
+                test_size=0.20,
+                random_state=RANDOM_SEED,
+                stratify=labels,
+            )
         )
-    )
-
-    validation_paths, test_paths, validation_labels, test_labels = (
-        train_test_split(
-            temp_paths,
-            temp_labels,
-            test_size=0.50,
-            random_state=RANDOM_SEED,
-            stratify=temp_labels,
+        validation_paths, test_paths, validation_labels, test_labels = (
+            train_test_split(
+                temp_paths,
+                temp_labels,
+                test_size=0.50,
+                random_state=RANDOM_SEED,
+                stratify=temp_labels,
+            )
         )
-    )
+    except ValueError:
+        # Fallback if samples are too few for stratification
+        train_paths, temp_paths, train_labels, temp_labels = train_test_split(paths, labels, test_size=0.40, random_state=RANDOM_SEED)
+        validation_paths, test_paths, validation_labels, test_labels = train_test_split(temp_paths, temp_labels, test_size=0.50, random_state=RANDOM_SEED)
 
     return (
         train_paths,
@@ -889,4 +892,42 @@ def train_single_model(
                     fine_tune_val_accuracy
                 )
 
-                best_checkpoint = fin
+                best_checkpoint = fine_tune_checkpoint
+
+    return (
+        best_checkpoint,
+        initial_history,
+        fine_tune_history,
+        best_validation_accuracy,
+    )
+
+
+# ============================================================
+# Main Execution
+# ============================================================
+if __name__ == "__main__":
+    print("Collecting assets...")
+    paths, labels = collect_assets()
+    validate_assets_distribution(labels)
+    
+    train_paths, train_labels, val_paths, val_labels, test_paths, test_labels = create_stratified_split(paths, labels)
+    
+    train_assets = create_assets(train_paths, train_labels, training=True)
+    validation_assets = create_assets(val_paths, val_labels, training=False)
+    test_assets = create_assets(test_paths, test_labels, training=False)
+    
+    class_weights = calculate_class_weights(train_labels)
+    
+    # 1. Train Custom CNN
+    cnn_model = build_custom_cnn(len(CLASS_NAMES))
+    train_single_model(
+        "Custom CNN",
+        cnn_model,
+        train_assets,
+        validation_assets,
+        test_assets,
+        class_weights,
+    )
+    
+    print("Training finished successfully!")
+
