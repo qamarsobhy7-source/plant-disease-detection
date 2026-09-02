@@ -4,22 +4,6 @@ A deep learning-based Computer Vision application designed to detect and classif
 
 ---
 
-## 📋 Table of Contents
-1. [Project Overview](#-project-overview)
-2. [Features](#-features)
-3. [Dataset](#-dataset)
-4. [Model Architecture](#-model-architecture)
-5. [Training & Pipeline](#-training--pipeline)
-6. [Evaluation & Performance](#-evaluation--performance)
-7. [Project Structure](#-project-structure)
-8. [Installation & Setup](#-installation--setup)
-9. [Usage](#-usage)
-10. [Limitations](#-limitations)
-11. [Future Improvements](#-future-improvements)
-12. [License](#-license)
-
----
-
 ## 🔍 Project Overview
 Early detection of plant diseases is crucial for preventing major crop losses in agriculture. This project leverages Deep Learning to analyze leaf images and instantly identify potential diseases, providing farmers and researchers with a reliable diagnostic tool.
 
