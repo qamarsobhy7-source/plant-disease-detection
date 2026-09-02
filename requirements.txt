@@ -1,4 +1,6 @@
-tensorflow
-gradio
+tensorflow>=2.0.0
+streamlit
 numpy
-Pillow
+pillow
+opencv-python
+matplotlib
