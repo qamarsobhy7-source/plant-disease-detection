@@ -1,6 +1,8 @@
 import os
 import json
 import random
+import shutil
+from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
@@ -37,36 +39,21 @@ FINE_TUNE_EPOCHS = 10
 
 RANDOM_SEED = 123
 
-DATA_DIR = "dataset"
-MODELS_DIR = "models"
-RESULTS_DIR = "results"
+DATA_DIR = Path("dataset")
+MODELS_DIR = Path("models")
+RESULTS_DIR = Path("results")
 
-os.makedirs(MODELS_DIR, exist_ok=True)
-os.makedirs(RESULTS_DIR, exist_ok=True)
+TRAINING_HISTORY_DIR = RESULTS_DIR / "training_history"
 
-tf.keras.utils.set_random_seed(RANDOM_SEED)
-np.random.seed(RANDOM_SEED)
-random.seed(RANDOM_SEED)
-
-
-print("=" * 70)
-print("Plant Disease Detection - Model Training")
-print("=" * 70)
-
-
-# ============================================================
-# Validate Dataset
-# ============================================================
-
-if not os.path.isdir(DATA_DIR):
-    raise FileNotFoundError(
-        f"Dataset directory was not found: {DATA_DIR}"
-    )
-
-
-# ============================================================
-# Supported Image Extensions
-# ============================================================
+# The class order is fixed intentionally.
+# The dataset folder names must match these names exactly.
+CLASS_NAMES = [
+    "Healthy Plant",
+    "Early Blight",
+    "Late Blight",
+    "Powdery Mildew",
+    "Leaf Spot",
+]
 
 IMAGE_EXTENSIONS = {
     ".jpg",
@@ -78,186 +65,45 @@ IMAGE_EXTENSIONS = {
 
 
 # ============================================================
-# Collect Image Paths
+# Reproducibility
 # ============================================================
 
-print("\nCollecting dataset images...")
+os.environ["PYTHONHASHSEED"] = str(RANDOM_SEED)
 
-class_names = sorted(
-    [
-        directory
-        for directory in os.listdir(DATA_DIR)
-        if os.path.isdir(os.path.join(DATA_DIR, directory))
-        and not directory.startswith(".")
-    ]
-)
-
-if len(class_names) < 2:
-    raise ValueError(
-        "The dataset must contain at least two class directories."
-    )
-
-
-class_to_index = {
-    class_name: index
-    for index, class_name in enumerate(class_names)
-}
-
-
-image_paths = []
-labels = []
-
-
-for class_name in class_names:
-
-    class_directory = os.path.join(
-        DATA_DIR,
-        class_name,
-    )
-
-    class_image_count = 0
-
-    for root, _, files in os.walk(class_directory):
-
-        for filename in files:
-
-            extension = os.path.splitext(
-                filename
-            )[1].lower()
-
-            if extension in IMAGE_EXTENSIONS:
-
-                image_path = os.path.join(
-                    root,
-                    filename,
-                )
-
-                image_paths.append(image_path)
-
-                labels.append(
-                    class_to_index[class_name]
-                )
-
-                class_image_count += 1
-
-    print(
-        f"{class_name}: {class_image_count} images"
-    )
-
-
-image_paths = np.array(image_paths)
-labels = np.array(labels)
-
-
-if len(image_paths) == 0:
-    raise ValueError(
-        "No supported image files were found in the dataset."
-    )
-
-
-if len(set(labels.tolist())) < 2:
-    raise ValueError(
-        "At least two classes are required."
-    )
-
-
-num_classes = len(class_names)
-
-
-print("\nClasses:")
-
-for index, class_name in enumerate(class_names):
-    print(
-        f"{index}: {class_name}"
-    )
-
-
-print(
-    f"\nTotal images: {len(image_paths)}"
-)
-
-print(
-    f"Number of classes: {num_classes}"
-)
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_SEED)
 
 
 # ============================================================
-# Save Class Names
+# Directory Setup
 # ============================================================
 
-class_names_path = os.path.join(
-    MODELS_DIR,
-    "class_names.json",
-)
-
-with open(
-    class_names_path,
-    "w",
-    encoding="utf-8",
-) as file:
-
-    json.dump(
-        class_names,
-        file,
-        ensure_ascii=False,
-        indent=4,
-    )
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+TRAINING_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
-# Dataset Split
+# Utility Functions
 # ============================================================
 
-print("\nCreating stratified dataset split...")
+def save_json(data, path):
+    """Save a Python object as formatted JSON."""
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-# 80% train / 20% temporary
-train_paths, temp_paths, train_labels, temp_labels = train_test_split(
-    image_paths,
-    labels,
-    test_size=0.20,
-    random_state=RANDOM_SEED,
-    stratify=labels,
-)
-
-
-# Split remaining 20% into:
-# 10% validation / 10% test
-val_paths, test_paths, val_labels, test_labels = train_test_split(
-    temp_paths,
-    temp_labels,
-    test_size=0.50,
-    random_state=RANDOM_SEED,
-    stratify=temp_labels,
-)
-
-
-print("\nDataset split:")
-
-print(
-    f"Training images   : {len(train_paths)} "
-    f"({len(train_paths) / len(image_paths) * 100:.1f}%)"
-)
-
-print(
-    f"Validation images : {len(val_paths)} "
-    f"({len(val_paths) / len(image_paths) * 100:.1f}%)"
-)
-
-print(
-    f"Testing images    : {len(test_paths)} "
-    f"({len(test_paths) / len(image_paths) * 100:.1f}%)"
-)
-
-
-# ============================================================
-# Create TensorFlow Dataset
-# ============================================================
-
-AUTOTUNE = tf.data.AUTOTUNE
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
 
 
 def load_image(path, label):
+    """
+    Load an image from disk, decode it as RGB,
+    resize it to IMG_SIZE, and return it with its label.
 
+    Preprocessing such as Rescaling or application-specific
+    preprocessing is handled inside each model.
+    """
     image = tf.io.read_file(path)
 
     image = tf.image.decode_image(
@@ -266,194 +112,491 @@ def load_image(path, label):
         expand_animations=False,
     )
 
-    image.set_shape(
-        [
-            None,
-            None,
-            3,
-        ]
-    )
+    image.set_shape([None, None, 3])
 
-    image = tf.image.resize(
-        image,
-        IMG_SIZE,
-    )
+    image = tf.image.resize(image, IMG_SIZE)
 
-    image = tf.cast(
-        image,
-        tf.float32,
-    )
+    image = tf.cast(image, tf.float32)
+
+    label = tf.cast(label, tf.int32)
 
     return image, label
 
 
-def create_dataset(
-    paths,
-    labels,
-    shuffle=False,
-):
+def create_dataset(paths, labels, training=False):
+    """Create a tf.data.Dataset from image paths and integer labels."""
 
     dataset = tf.data.Dataset.from_tensor_slices(
         (
-            paths,
-            labels,
+            np.asarray(paths, dtype=str),
+            np.asarray(labels, dtype=np.int32),
         )
     )
 
-    dataset = dataset.map(
-        load_image,
-        num_parallel_calls=AUTOTUNE,
-    )
-
-    if shuffle:
+    if training:
         dataset = dataset.shuffle(
             buffer_size=len(paths),
             seed=RANDOM_SEED,
             reshuffle_each_iteration=True,
         )
 
-    dataset = dataset.batch(
-        BATCH_SIZE
+    dataset = dataset.map(
+        load_image,
+        num_parallel_calls=tf.data.AUTOTUNE,
     )
+
+    dataset = dataset.batch(BATCH_SIZE)
+
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
     return dataset
 
 
-train_ds = create_dataset(
-    train_paths,
-    train_labels,
-    shuffle=True,
-)
+def collect_dataset():
+    """
+    Collect all image paths according to the fixed CLASS_NAMES order.
+    """
 
-val_ds = create_dataset(
-    val_paths,
-    val_labels,
-    shuffle=False,
-)
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(
+            f"Dataset directory was not found: {DATA_DIR}"
+        )
 
-test_ds = create_dataset(
-    test_paths,
-    test_labels,
-    shuffle=False,
-)
+    all_paths = []
+    all_labels = []
 
+    for class_index, class_name in enumerate(CLASS_NAMES):
 
-# ============================================================
-# Class Weights
-# ============================================================
+        class_dir = DATA_DIR / class_name
 
-print("\nCalculating class weights...")
-
-class_counts = np.bincount(
-    train_labels,
-    minlength=num_classes,
-)
-
-total_training_samples = len(
-    train_labels
-)
-
-
-class_weights = {}
-
-for class_index in range(num_classes):
-
-    if class_counts[class_index] == 0:
-        class_weights[class_index] = 1.0
-
-    else:
-        class_weights[class_index] = (
-            total_training_samples
-            / (
-                num_classes
-                * class_counts[class_index]
+        if not class_dir.exists():
+            raise FileNotFoundError(
+                f"Required class directory was not found: {class_dir}"
             )
+
+        class_images = sorted(
+            [
+                path
+                for path in class_dir.rglob("*")
+                if path.is_file()
+                and path.suffix.lower() in IMAGE_EXTENSIONS
+            ]
+        )
+
+        if len(class_images) == 0:
+            raise ValueError(
+                f"No supported images were found in: {class_dir}"
+            )
+
+        print(
+            f"{class_name}: {len(class_images)} images"
+        )
+
+        all_paths.extend(
+            [str(path) for path in class_images]
+        )
+
+        all_labels.extend(
+            [class_index] * len(class_images)
+        )
+
+    return all_paths, all_labels
+
+
+def validate_dataset_distribution(labels):
+    """Validate that every class has enough samples."""
+
+    counts = np.bincount(
+        labels,
+        minlength=len(CLASS_NAMES),
+    )
+
+    print("\nClass distribution:")
+
+    for class_name, count in zip(CLASS_NAMES, counts):
+        print(f"  {class_name}: {count}")
+
+    if np.any(counts < 10):
+        raise ValueError(
+            "Each class must contain at least 10 images "
+            "to create a reliable stratified 80/10/10 split."
         )
 
 
-for class_index, weight in class_weights.items():
+def create_stratified_split(paths, labels):
+    """
+    Create deterministic 80/10/10 train/validation/test split.
+    """
 
-    print(
-        f"{class_names[class_index]}: "
-        f"{weight:.4f}"
+    train_paths, temp_paths, train_labels, temp_labels = (
+        train_test_split(
+            paths,
+            labels,
+            test_size=0.20,
+            random_state=RANDOM_SEED,
+            stratify=labels,
+        )
     )
+
+    validation_paths, test_paths, validation_labels, test_labels = (
+        train_test_split(
+            temp_paths,
+            temp_labels,
+            test_size=0.50,
+            random_state=RANDOM_SEED,
+            stratify=temp_labels,
+        )
+    )
+
+    return (
+        train_paths,
+        train_labels,
+        validation_paths,
+        validation_labels,
+        test_paths,
+        test_labels,
+    )
+
+
+def save_split_metadata(
+    train_paths,
+    train_labels,
+    validation_paths,
+    validation_labels,
+    test_paths,
+    test_labels,
+):
+    """
+    Save the exact split so evaluate_model.py can evaluate
+    exactly the same test images used during training.
+    """
+
+    def relative_paths(paths):
+        return [
+            os.path.relpath(path, DATA_DIR)
+            for path in paths
+        ]
+
+    metadata = {
+        "random_seed": RANDOM_SEED,
+        "image_size": list(IMG_SIZE),
+        "class_names": CLASS_NAMES,
+        "split_ratio": {
+            "train": 0.80,
+            "validation": 0.10,
+            "test": 0.10,
+        },
+        "train": {
+            "paths": relative_paths(train_paths),
+            "labels": [int(x) for x in train_labels],
+        },
+        "validation": {
+            "paths": relative_paths(validation_paths),
+            "labels": [int(x) for x in validation_labels],
+        },
+        "test": {
+            "paths": relative_paths(test_paths),
+            "labels": [int(x) for x in test_labels],
+        },
+    }
+
+    save_json(
+        metadata,
+        RESULTS_DIR / "data_split.json",
+    )
+
+
+def calculate_class_weights(labels):
+    """Calculate balanced class weights."""
+
+    counts = np.bincount(
+        labels,
+        minlength=len(CLASS_NAMES),
+    )
+
+    total = len(labels)
+    num_classes = len(CLASS_NAMES)
+
+    class_weights = {}
+
+    for class_index, count in enumerate(counts):
+        class_weights[class_index] = (
+            total / (num_classes * count)
+        )
+
+    return class_weights
 
 
 # ============================================================
 # Data Augmentation
 # ============================================================
 
-data_augmentation = tf.keras.Sequential(
-    [
-        layers.RandomFlip(
-            "horizontal"
-        ),
+def create_data_augmentation():
+    return tf.keras.Sequential(
+        [
+            layers.RandomFlip(
+                "horizontal",
+                seed=RANDOM_SEED,
+            ),
+            layers.RandomRotation(
+                0.10,
+                seed=RANDOM_SEED,
+            ),
+            layers.RandomZoom(
+                0.10,
+                seed=RANDOM_SEED,
+            ),
+            layers.RandomTranslation(
+                0.10,
+                0.10,
+                seed=RANDOM_SEED,
+            ),
+            layers.RandomContrast(
+                0.10,
+                seed=RANDOM_SEED,
+            ),
+        ],
+        name="data_augmentation",
+    )
 
-        layers.RandomRotation(
-            0.10
-        ),
 
-        layers.RandomZoom(
-            0.10
-        ),
+# ============================================================
+# Custom CNN
+# ============================================================
 
-        layers.RandomTranslation(
-            height_factor=0.10,
-            width_factor=0.10,
-        ),
+def build_custom_cnn(num_classes):
+    """Build the custom CNN model."""
 
-        layers.RandomContrast(
-            0.10
-        ),
-    ],
-    name="data_augmentation",
-)
+    inputs = layers.Input(
+        shape=(*IMG_SIZE, 3),
+        name="input_image",
+    )
+
+    x = create_data_augmentation()(inputs)
+
+    x = layers.Rescaling(
+        1.0 / 255.0,
+        name="rescaling",
+    )(x)
+
+    x = layers.Conv2D(
+        32,
+        3,
+        padding="same",
+        activation="relu",
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D()(x)
+
+    x = layers.Conv2D(
+        64,
+        3,
+        padding="same",
+        activation="relu",
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D()(x)
+
+    x = layers.Conv2D(
+        128,
+        3,
+        padding="same",
+        activation="relu",
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D()(x)
+
+    x = layers.Conv2D(
+        256,
+        3,
+        padding="same",
+        activation="relu",
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.MaxPooling2D()(x)
+
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.Dense(
+        128,
+        activation="relu",
+    )(x)
+
+    x = layers.Dropout(0.50)(x)
+
+    outputs = layers.Dense(
+        num_classes,
+        activation="softmax",
+        name="predictions",
+    )(x)
+
+    model = Model(
+        inputs=inputs,
+        outputs=outputs,
+        name="CustomCNN",
+    )
+
+    model.compile(
+        optimizer=Adam(learning_rate=1e-3),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    return model
+
+
+# ============================================================
+# Transfer Learning Models
+# ============================================================
+
+def build_mobilenetv2(num_classes):
+    """Build MobileNetV2 transfer-learning model."""
+
+    base_model = MobileNetV2(
+        weights="imagenet",
+        include_top=False,
+        input_shape=(*IMG_SIZE, 3),
+    )
+
+    base_model.trainable = False
+
+    inputs = layers.Input(
+        shape=(*IMG_SIZE, 3),
+        name="input_image",
+    )
+
+    x = create_data_augmentation()(inputs)
+
+    x = layers.Lambda(
+        tf.keras.applications.mobilenet_v2.preprocess_input,
+        name="mobilenetv2_preprocessing",
+    )(x)
+
+    x = base_model(
+        x,
+        training=False,
+    )
+
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.Dense(
+        128,
+        activation="relu",
+    )(x)
+
+    x = layers.Dropout(0.40)(x)
+
+    outputs = layers.Dense(
+        num_classes,
+        activation="softmax",
+        name="predictions",
+    )(x)
+
+    model = Model(
+        inputs=inputs,
+        outputs=outputs,
+        name="MobileNetV2",
+    )
+
+    model.compile(
+        optimizer=Adam(learning_rate=1e-3),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    return model, base_model
+
+
+def build_efficientnetb0(num_classes):
+    """Build EfficientNetB0 transfer-learning model."""
+
+    base_model = EfficientNetB0(
+        weights="imagenet",
+        include_top=False,
+        input_shape=(*IMG_SIZE, 3),
+    )
+
+    base_model.trainable = False
+
+    inputs = layers.Input(
+        shape=(*IMG_SIZE, 3),
+        name="input_image",
+    )
+
+    x = create_data_augmentation()(inputs)
+
+    # EfficientNetB0 in this TensorFlow/Keras version
+    # contains its preprocessing/rescaling internally.
+    x = base_model(
+        x,
+        training=False,
+    )
+
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.Dense(
+        128,
+        activation="relu",
+    )(x)
+
+    x = layers.Dropout(0.40)(x)
+
+    outputs = layers.Dense(
+        num_classes,
+        activation="softmax",
+        name="predictions",
+    )(x)
+
+    model = Model(
+        inputs=inputs,
+        outputs=outputs,
+        name="EfficientNetB0",
+    )
+
+    model.compile(
+        optimizer=Adam(learning_rate=1e-3),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    return model, base_model
 
 
 # ============================================================
 # Callbacks
 # ============================================================
 
-def get_callbacks(model_path):
-
-    checkpoint = ModelCheckpoint(
-        model_path,
-        monitor="val_accuracy",
-        mode="max",
-        save_best_only=True,
-        verbose=1,
-    )
-
-    early_stopping = EarlyStopping(
-        monitor="val_loss",
-        patience=4,
-        restore_best_weights=True,
-        verbose=1,
-    )
-
-    reduce_lr = ReduceLROnPlateau(
-        monitor="val_loss",
-        factor=0.2,
-        patience=2,
-        min_lr=1e-7,
-        verbose=1,
-    )
-
+def create_callbacks(checkpoint_path):
     return [
-        checkpoint,
-        early_stopping,
-        reduce_lr,
+        ModelCheckpoint(
+            filepath=str(checkpoint_path),
+            monitor="val_accuracy",
+            mode="max",
+            save_best_only=True,
+            verbose=1,
+        ),
+        EarlyStopping(
+            monitor="val_loss",
+            patience=4,
+            restore_best_weights=True,
+            verbose=1,
+        ),
+        ReduceLROnPlateau(
+            monitor="val_loss",
+            factor=0.2,
+            patience=2,
+            min_lr=1e-7,
+            verbose=1,
+        ),
     ]
 
 
 # ============================================================
-# Helper: Combine Histories
+# Training History
 # ============================================================
 
-def combine_histories(
-    history_one,
-    history_two=None,
-):
+def combine_histories(history_one, history_two=None):
+    """Combine history dictionaries from two training phases."""
 
     combined = {}
 
@@ -461,697 +604,289 @@ def combine_histories(
         combined[key] = list(values)
 
     if history_two is not None:
-
         for key, values in history_two.history.items():
-
-            if key not in combined:
-                combined[key] = []
-
-            combined[key].extend(
-                list(values)
-            )
+            combined.setdefault(key, [])
+            combined[key].extend(values)
 
     return combined
 
 
-# ============================================================
-# Custom CNN
-# ============================================================
-
-print("\n" + "=" * 70)
-print("Training Custom CNN")
-print("=" * 70)
-
-
-custom_cnn = models.Sequential(
-    [
-
-        layers.Input(
-            shape=(
-                IMG_SIZE[0],
-                IMG_SIZE[1],
-                3,
-            )
-        ),
-
-        data_augmentation,
-
-        layers.Rescaling(
-            1.0 / 255.0
-        ),
-
-        layers.Conv2D(
-            32,
-            (3, 3),
-            padding="same",
-            activation="relu",
-        ),
-
-        layers.BatchNormalization(),
-
-        layers.MaxPooling2D(
-            (2, 2)
-        ),
-
-        layers.Conv2D(
-            64,
-            (3, 3),
-            padding="same",
-            activation="relu",
-        ),
-
-        layers.BatchNormalization(),
-
-        layers.MaxPooling2D(
-            (2, 2)
-        ),
-
-        layers.Conv2D(
-            128,
-            (3, 3),
-            padding="same",
-            activation="relu",
-        ),
-
-        layers.BatchNormalization(),
-
-        layers.MaxPooling2D(
-            (2, 2)
-        ),
-
-        layers.Conv2D(
-            256,
-            (3, 3),
-            padding="same",
-            activation="relu",
-        ),
-
-        layers.BatchNormalization(),
-
-        layers.MaxPooling2D(
-            (2, 2)
-        ),
-
-        layers.GlobalAveragePooling2D(),
-
-        layers.Dense(
-            128,
-            activation="relu",
-        ),
-
-        layers.Dropout(
-            0.5
-        ),
-
-        layers.Dense(
-            num_classes,
-            activation="softmax",
-        ),
-    ],
-    name="CustomCNN",
-)
-
-
-custom_cnn.compile(
-    optimizer=Adam(
-        learning_rate=1e-3
-    ),
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
-)
-
-
-custom_cnn.summary()
-
-
-custom_cnn_path = os.path.join(
-    MODELS_DIR,
-    "custom_cnn.keras",
-)
-
-
-history_cnn = custom_cnn.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=INITIAL_EPOCHS,
-    class_weight=class_weights,
-    callbacks=get_callbacks(
-        custom_cnn_path
-    ),
-)
-
-
-# ============================================================
-# MobileNetV2
-# ============================================================
-
-print("\n" + "=" * 70)
-print("Training MobileNetV2")
-print("=" * 70)
-
-
-base_mobilenet = MobileNetV2(
-    input_shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3,
-    ),
-    include_top=False,
-    weights="imagenet",
-)
-
-
-base_mobilenet.trainable = False
-
-
-mobilenet_inputs = layers.Input(
-    shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3,
-    )
-)
-
-
-x = data_augmentation(
-    mobilenet_inputs
-)
-
-
-x = layers.Lambda(
-    tf.keras.applications.mobilenet_v2.preprocess_input,
-    name="mobilenetv2_preprocessing",
-)(x)
-
-
-x = base_mobilenet(
-    x,
-    training=False,
-)
-
-
-x = layers.GlobalAveragePooling2D()(x)
-
-
-x = layers.Dense(
-    128,
-    activation="relu",
-)(x)
-
-
-x = layers.Dropout(
-    0.4
-)(x)
-
-
-mobilenet_outputs = layers.Dense(
-    num_classes,
-    activation="softmax",
-)(x)
-
-
-mobilenet_model = Model(
-    mobilenet_inputs,
-    mobilenet_outputs,
-    name="MobileNetV2",
-)
-
-
-mobilenet_model.compile(
-    optimizer=Adam(
-        learning_rate=1e-3
-    ),
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
-)
-
-
-mobilenet_model.summary()
-
-
-mobilenet_path = os.path.join(
-    MODELS_DIR,
-    "mobilenetv2.keras",
-)
-
-
-history_mobilenet = mobilenet_model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=INITIAL_EPOCHS,
-    class_weight=class_weights,
-    callbacks=get_callbacks(
-        mobilenet_path
-    ),
-)
-
-
-# ============================================================
-# MobileNetV2 Fine-Tuning
-# ============================================================
-
-print("\n" + "=" * 70)
-print("Fine-tuning MobileNetV2")
-print("=" * 70)
-
-
-base_mobilenet.trainable = True
-
-
-for layer in base_mobilenet.layers[:-30]:
-    layer.trainable = False
-
-
-for layer in base_mobilenet.layers:
-
-    if isinstance(
-        layer,
-        layers.BatchNormalization,
-    ):
-        layer.trainable = False
-
-
-mobilenet_model.compile(
-    optimizer=Adam(
-        learning_rate=1e-5
-    ),
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
-)
-
-
-history_mobilenet_fine = mobilenet_model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=FINE_TUNE_EPOCHS,
-    class_weight=class_weights,
-    callbacks=get_callbacks(
-        mobilenet_path
-    ),
-)
-
-
-combined_mobilenet_history = combine_histories(
-    history_mobilenet,
-    history_mobilenet_fine,
-)
-
-
-# ============================================================
-# EfficientNetB0
-# ============================================================
-
-print("\n" + "=" * 70)
-print("Training EfficientNetB0")
-print("=" * 70)
-
-
-base_efficientnet = EfficientNetB0(
-    input_shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3,
-    ),
-    include_top=False,
-    weights="imagenet",
-)
-
-
-base_efficientnet.trainable = False
-
-
-efficientnet_inputs = layers.Input(
-    shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3,
-    )
-)
-
-
-x = data_augmentation(
-    efficientnet_inputs
-)
-
-
-x = base_efficientnet(
-    x,
-    training=False,
-)
-
-
-x = layers.GlobalAveragePooling2D()(x)
-
-
-x = layers.Dense(
-    128,
-    activation="relu",
-)(x)
-
-
-x = layers.Dropout(
-    0.4
-)(x)
-
-
-efficientnet_outputs = layers.Dense(
-    num_classes,
-    activation="softmax",
-)(x)
-
-
-efficientnet_model = Model(
-    efficientnet_inputs,
-    efficientnet_outputs,
-    name="EfficientNetB0",
-)
-
-
-efficientnet_model.compile(
-    optimizer=Adam(
-        learning_rate=1e-3
-    ),
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
-)
-
-
-efficientnet_model.summary()
-
-
-efficientnet_path = os.path.join(
-    MODELS_DIR,
-    "efficientnetb0.keras",
-)
-
-
-history_efficientnet = efficientnet_model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=INITIAL_EPOCHS,
-    class_weight=class_weights,
-    callbacks=get_callbacks(
-        efficientnet_path
-    ),
-)
-
-
-# ============================================================
-# EfficientNetB0 Fine-Tuning
-# ============================================================
-
-print("\n" + "=" * 70)
-print("Fine-tuning EfficientNetB0")
-print("=" * 70)
-
-
-base_efficientnet.trainable = True
-
-
-for layer in base_efficientnet.layers[:-30]:
-    layer.trainable = False
-
-
-for layer in base_efficientnet.layers:
-
-    if isinstance(
-        layer,
-        layers.BatchNormalization,
-    ):
-        layer.trainable = False
-
-
-efficientnet_model.compile(
-    optimizer=Adam(
-        learning_rate=1e-5
-    ),
-    loss="sparse_categorical_crossentropy",
-    metrics=["accuracy"],
-)
-
-
-history_efficientnet_fine = efficientnet_model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=FINE_TUNE_EPOCHS,
-    class_weight=class_weights,
-    callbacks=get_callbacks(
-        efficientnet_path
-    ),
-)
-
-
-combined_efficientnet_history = combine_histories(
-    history_efficientnet,
-    history_efficientnet_fine,
-)
-
-
-# ============================================================
-# Evaluation Function
-# ============================================================
-
-def evaluate_model(
-    model_name,
-    model_path,
-    test_dataset,
-):
-
-    print("\n" + "=" * 70)
-    print(
-        f"Evaluating {model_name}"
-    )
-    print("=" * 70)
-
-
-    model = tf.keras.models.load_model(
-        model_path
+def save_training_history(model_name, history):
+    safe_name = model_name.lower().replace(" ", "_")
+
+    save_json(
+        history,
+        TRAINING_HISTORY_DIR / f"{safe_name}_history.json",
     )
 
 
-    loss, accuracy = model.evaluate(
-        test_dataset,
-        verbose=0,
+def plot_training_history(model_name, history):
+    safe_name = model_name.lower().replace(" ", "_")
+
+    epochs = range(
+        1,
+        len(history["loss"]) + 1,
     )
 
+    # Accuracy plot
+    plt.figure(figsize=(9, 6))
 
-    y_true = []
-    y_pred = []
-
-
-    for images, labels_batch in test_dataset:
-
-        predictions = model.predict(
-            images,
-            verbose=0,
-        )
-
-        predicted_labels = np.argmax(
-            predictions,
-            axis=1,
-        )
-
-        y_true.extend(
-            labels_batch.numpy().tolist()
-        )
-
-        y_pred.extend(
-            predicted_labels.tolist()
-        )
-
-
-    y_true = np.array(
-        y_true
+    plt.plot(
+        epochs,
+        history["accuracy"],
+        label="Training Accuracy",
     )
 
-    y_pred = np.array(
-        y_pred
+    plt.plot(
+        epochs,
+        history["val_accuracy"],
+        label="Validation Accuracy",
     )
 
-
-    precision = precision_score(
-        y_true,
-        y_pred,
-        average="weighted",
-        zero_division=0,
-    )
-
-
-    recall = recall_score(
-        y_true,
-        y_pred,
-        average="weighted",
-        zero_division=0,
-    )
-
-
-    f1 = f1_score(
-        y_true,
-        y_pred,
-        average="weighted",
-        zero_division=0,
-    )
-
-
-    print(
-        f"\nTest Accuracy : "
-        f"{accuracy * 100:.2f}%"
-    )
-
-    print(
-        f"Test Loss     : "
-        f"{loss:.4f}"
-    )
-
-    print(
-        f"Precision     : "
-        f"{precision:.4f}"
-    )
-
-    print(
-        f"Recall        : "
-        f"{recall:.4f}"
-    )
-
-    print(
-        f"F1 Score      : "
-        f"{f1:.4f}"
-    )
-
-
-    # --------------------------------------------------------
-    # Classification Report
-    # --------------------------------------------------------
-
-    report = classification_report(
-        y_true,
-        y_pred,
-        target_names=class_names,
-        zero_division=0,
-    )
-
-
-    print(
-        "\nClassification Report:"
-    )
-
-    print(report)
-
-
-    safe_name = (
-        model_name
-        .lower()
-        .replace(" ", "_")
-    )
-
-
-    report_path = os.path.join(
-        RESULTS_DIR,
-        f"{safe_name}_classification_report.txt",
-    )
-
-
-    with open(
-        report_path,
-        "w",
-        encoding="utf-8",
-    ) as file:
-
-        file.write(report)
-
-
-    # --------------------------------------------------------
-    # Confusion Matrix
-    # --------------------------------------------------------
-
-    cm = confusion_matrix(
-        y_true,
-        y_pred,
-    )
-
-
-    plt.figure(
-        figsize=(8, 6)
-    )
-
-
-    plt.imshow(cm)
-
-
-    plt.title(
-        f"{model_name} - Confusion Matrix"
-    )
-
-
-    plt.xlabel(
-        "Predicted Label"
-    )
-
-    plt.ylabel(
-        "True Label"
-    )
-
-
-    plt.xticks(
-        range(num_classes),
-        class_names,
-        rotation=45,
-        ha="right",
-    )
-
-
-    plt.yticks(
-        range(num_classes),
-        class_names,
-    )
-
-
-    for i in range(num_classes):
-
-        for j in range(num_classes):
-
-            plt.text(
-                j,
-                i,
-                cm[i, j],
-                ha="center",
-                va="center",
-            )
-
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.title(f"{model_name} - Accuracy")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
 
     plt.tight_layout()
 
-
-    confusion_path = os.path.join(
-        RESULTS_DIR,
-        f"{safe_name}_confusion_matrix.png",
+    plt.savefig(
+        TRAINING_HISTORY_DIR / f"{safe_name}_accuracy.png",
+        dpi=150,
     )
 
+    plt.close()
+
+    # Loss plot
+    plt.figure(figsize=(9, 6))
+
+    plt.plot(
+        epochs,
+        history["loss"],
+        label="Training Loss",
+    )
+
+    plt.plot(
+        epochs,
+        history["val_loss"],
+        label="Validation Loss",
+    )
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title(f"{model_name} - Loss")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
 
     plt.savefig(
-        confusion_path,
-        dpi=200,
-        bbox_inches="tight",
+        TRAINING_HISTORY_DIR / f"{safe_name}_loss.png",
+        dpi=150,
     )
-
 
     plt.close()
 
 
-    return {
-        "model": model_name,
-        "accuracy": float(accuracy),
-        "loss": float(loss),
-        "precision": float(precision),
-        "recall": float(recall),
-        "f1_score": float(f1),
-        "path": model_path,
-    }
+# ============================================================
+# Model Summary
+# ============================================================
+
+def save_model_summary(model, model_name):
+    summary_path = RESULTS_DIR / "model_summaries.txt"
+
+    with open(
+        summary_path,
+        "a",
+        encoding="utf-8",
+    ) as file:
+
+        file.write("\n")
+        file.write("=" * 80)
+        file.write("\n")
+        file.write(f"{model_name}\n")
+        file.write("=" * 80)
+        file.write("\n")
+
+        model.summary(
+            print_fn=lambda line: file.write(line + "\n")
+        )
 
 
 # ============================================================
-# Validation Accuracy
+# Fine Tuning
 # ============================================================
 
-def get_validation_accuracy(
-    
+def fine_tune_model(
+    model,
+    base_model,
+    model_name,
+    train_dataset,
+    validation_dataset,
+    class_weights,
+):
+    """
+    Fine-tune the last 30 layers of a transfer-learning model.
+
+    BatchNormalization layers remain frozen for stability.
+    """
+
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    total_layers = len(base_model.layers)
+
+    fine_tune_from = max(
+        0,
+        total_layers - 30,
+    )
+
+    for layer in base_model.layers[fine_tune_from:]:
+        if not isinstance(
+            layer,
+            layers.BatchNormalization,
+        ):
+            layer.trainable = True
+
+    model.compile(
+        optimizer=Adam(learning_rate=1e-5),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    checkpoint_path = (
+        MODELS_DIR
+        / f"{model_name}_finetune_best.keras"
+    )
+
+    callbacks = create_callbacks(
+        checkpoint_path
+    )
+
+    history = model.fit(
+        train_dataset,
+        validation_data=validation_dataset,
+        epochs=FINE_TUNE_EPOCHS,
+        class_weight=class_weights,
+        callbacks=callbacks,
+        verbose=1,
+    )
+
+    return history, checkpoint_path
+
+
+# ============================================================
+# Model Training
+# ============================================================
+
+def train_single_model(
+    model_name,
+    model,
+    train_dataset,
+    validation_dataset,
+    test_dataset,
+    class_weights,
+    base_model=None,
+):
+    """
+    Train one model, optionally fine-tune it,
+    compare initial and fine-tuned checkpoints on validation data,
+    and save the globally best version.
+    """
+
+    safe_name = model_name.lower().replace(" ", "_")
+
+    initial_checkpoint = (
+        MODELS_DIR
+        / f"{safe_name}_initial_best.keras"
+    )
+
+    initial_callbacks = create_callbacks(
+        initial_checkpoint
+    )
+
+    print("\n")
+    print("=" * 80)
+    print(f"Training {model_name}")
+    print("=" * 80)
+
+    save_model_summary(
+        model,
+        model_name,
+    )
+
+    initial_history = model.fit(
+        train_dataset,
+        validation_data=validation_dataset,
+        epochs=INITIAL_EPOCHS,
+        class_weight=class_weights,
+        callbacks=initial_callbacks,
+        verbose=1,
+    )
+
+    best_validation_accuracy = -1.0
+    best_checkpoint = None
+
+    # Evaluate the best initial checkpoint.
+    if initial_checkpoint.exists():
+
+        initial_best_model = tf.keras.models.load_model(
+            initial_checkpoint
+        )
+
+        initial_metrics = initial_best_model.evaluate(
+            validation_dataset,
+            verbose=0,
+        )
+
+        initial_val_accuracy = float(
+            initial_metrics[1]
+        )
+
+        best_validation_accuracy = initial_val_accuracy
+        best_checkpoint = initial_checkpoint
+
+        del initial_best_model
+
+    fine_tune_history = None
+    fine_tune_checkpoint = None
+
+    # Fine-tuning is only performed for transfer-learning models.
+    if base_model is not None:
+
+        fine_tune_history, fine_tune_checkpoint = (
+            fine_tune_model(
+                model=model,
+                base_model=base_model,
+                model_name=safe_name,
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                class_weights=class_weights,
+            )
+        )
+
+        if fine_tune_checkpoint.exists():
+
+            fine_tuned_model = tf.keras.models.load_model(
+                fine_tune_checkpoint
+            )
+
+            fine_tune_metrics = (
+                fine_tuned_model.evaluate(
+                    validation_dataset,
+                    verbose=0,
+                )
+            )
+
+            fine_tune_val_accuracy = float(
+                fine_tune_metrics[1]
+            )
+
+            if fine_tune_val_accuracy > best_validation_accuracy:
+
+                best_validation_accuracy = (
+                    fine_tune_val_accuracy
+                )
+
+                best_checkpoint = fin
