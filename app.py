@@ -79,9 +79,9 @@ if uploaded_file is not None:
                 img_array = img_array / 255.0
 
                 # Make prediction
-                predictions = model.predict(img_array)
-                predicted_class_index = np.argmax(predictions[0])
-                confidence = float(np.max(predictions[0])) * 100
+                predictions = model.predict(img_array)[0]
+                predicted_class_index = np.argmax(predictions)
+                confidence = float(predictions[predicted_class_index]) * 100
 
                 predicted_label = class_names[predicted_class_index]
 
@@ -92,8 +92,21 @@ if uploaded_file is not None:
                 st.warning("⚠️ Low Confidence Score.")
                 st.warning("Please upload a clearer plant leaf image.")
             else:
-                st.metric(label="Predicted Condition", value=predicted_label)
-                st.metric(label="Confidence Score", value=f"{confidence:.2f}%")
+                # Main Results Display
+                st.markdown("### 🔍 Prediction Result")
+                st.markdown(f"**Predicted Disease:** {predicted_label}")
+                st.markdown(f"**Confidence:** {confidence:.1f}%")
+                
+                st.markdown("---")
+                
+                # Top Predictions List (Sorted from highest to lowest)
+                st.markdown("### 📊 Top Predictions")
+                sorted_indices = np.argsort(predictions)[::-1]
+                
+                for rank, idx in enumerate(sorted_indices, start=1):
+                    c_name = class_names[idx]
+                    c_prob = float(predictions[idx]) * 100
+                    st.text(f"{rank}. {c_name} — {c_prob:.1f}%")
         else:
             st.error(f"Model file not found! Please ensure '{selected_model_path}' exists or run training first.")
 
