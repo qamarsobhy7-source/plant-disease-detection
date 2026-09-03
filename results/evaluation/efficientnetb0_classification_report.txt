@@ -1,0 +1,25 @@
+Model: efficientnetb0
+Model Path: models/efficientnetb0.keras
+
+Test Loss: 0.228470
+Test Accuracy: 0.921875
+Weighted Precision: 0.927639
+Weighted Recall: 0.921875
+Weighted F1 Score: 0.920525
+Macro Precision: 0.928668
+Macro Recall: 0.905730
+Macro F1 Score: 0.911344
+
+Classification Report
+============================================================
+                    precision    recall  f1-score   support
+
+      Early_Blight       0.99      0.71      0.83       200
+           Healthy       0.93      0.99      0.96       318
+       Late_Blight       0.95      0.97      0.96       381
+Septoria_Leaf_Spot       0.96      0.90      0.93       355
+       Target_Spot       0.82      0.95      0.88       282
+
+          accuracy                           0.92      1536
+         macro avg       0.93      0.91      0.91      1536
+      weighted avg       0.93      0.92      0.92      1536

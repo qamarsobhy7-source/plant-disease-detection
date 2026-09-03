@@ -24,9 +24,6 @@ MODELS_DIR = Path("models")
 CLASS_NAMES_FILE = MODELS_DIR / "class_names.json"
 
 MODEL_FILES = {
-    "Best Model": MODELS_DIR / "best_model.keras",
-    "Custom CNN": MODELS_DIR / "custom_cnn.keras",
-    "MobileNetV2": MODELS_DIR / "mobilenetv2.keras",
     "EfficientNetB0": MODELS_DIR / "efficientnetb0.keras",
 }
 
@@ -84,8 +81,6 @@ def preprocess_image(image):
     Convert the uploaded PIL image into a raw float32 tensor.
 
     Model-specific preprocessing is embedded inside each model:
-    - Custom CNN: Rescaling 1/255
-    - MobileNetV2: preprocess_input
     - EfficientNetB0: built-in preprocessing
     """
 
@@ -485,20 +480,8 @@ st.subheader(
 )
 
 model_information = {
-    "Best Model": (
-        "The model selected during training using "
-        "validation accuracy."
-    ),
-    "Custom CNN": (
-        "A custom convolutional neural network "
-        "built specifically for the project."
-    ),
-    "MobileNetV2": (
-        "A transfer-learning model initialized "
-        "with ImageNet weights and fine-tuned."
-    ),
     "EfficientNetB0": (
-        "An EfficientNetB0 transfer-learning model "
+        "EfficientNetB0 transfer-learning model "
         "initialized with ImageNet weights and fine-tuned."
     ),
 }

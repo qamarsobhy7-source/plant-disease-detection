@@ -1,509 +1,215 @@
-Plant Disease Detection System
+# Plant Disease Detection
 
-A deep learning-based computer vision system for classifying plant leaf images into predefined health and disease categories.
+A deep learning-based computer vision system for classifying tomato leaf images into five disease and health categories using TensorFlow, Keras, and EfficientNetB0.
 
-The project provides a complete machine learning pipeline covering assets preparation, stratified data splitting, model training, transfer learning, fine-tuning, model selection, evaluation, visualization, and interactive image classification through a Streamlit web application.
+## Overview
 
-Project Overview
+This project implements an end-to-end tomato plant disease classification pipeline:
 
-The system is designed to classify plant leaf images into five classes:
+- Dataset cleaning and duplicate removal
+- Leakage-free train/validation/test splitting
+- Image preprocessing and augmentation
+- Transfer learning using EfficientNetB0
+- Partial backbone fine-tuning
+- Final test-set evaluation
+- Confusion matrix and classification report
+- Streamlit web application for image prediction
 
-- Healthy Plant
-- Early Blight
-- Late Blight
-- Powdery Mildew
-- Leaf Spot
+The project is designed for educational and research purposes.
 
-Three deep learning approaches are trained and compared:
+## Supported Classes
 
-1. Custom Convolutional Neural Network (CNN)
-2. MobileNetV2 with transfer learning
-3. EfficientNetB0 with transfer learning
+The final model recognizes five classes:
 
-The final model is selected using validation accuracy. The test set is kept separate and is used only for final evaluation.
+1. `Early_Blight`
+2. `Healthy`
+3. `Late_Blight`
+4. `Septoria_Leaf_Spot`
+5. `Target_Spot`
 
-Main Features
+## Dataset
 
-- Fixed and reproducible 80/10/10 train-validation-test split
-- Stratified data splitting
-- Fixed class ordering
-- Class-weight calculation for imbalanced assetss
-- Image augmentation during training
-- Custom CNN architecture
-- MobileNetV2 transfer learning
-- EfficientNetB0 transfer learning
-- Fine-tuning of transfer-learning models
-- Early stopping
-- Learning-rate reduction
-- Best-checkpoint selection
-- Automatic best-model selection using validation accuracy
-- Classification reports
-- Confusion matrices
-- Accuracy, precision, recall, and F1-score
-- Macro and weighted evaluation metrics
-- Training history files
-- Training accuracy and loss plots
-- Model comparison results
-- Interactive Streamlit prediction interface
-- Top-3 prediction probabilities
-- Confidence threshold warning
-- Consistent preprocessing between training and inference
+The project uses the tomato disease portion of the PlantVillage dataset.
 
-Project Structure
+After duplicate removal:
 
+| Class | Images |
+|---|---:|
+| Early_Blight | 1000 |
+| Healthy | 1585 |
+| Late_Blight | 1901 |
+| Septoria_Leaf_Spot | 1771 |
+| Target_Spot | 1404 |
+| **Total** | **7661** |
+
+### Dataset Split
+
+The cleaned dataset was divided using a fixed random seed (`123`):
+
+| Split | Images | Percentage |
+|---|---:|---:|
+| Training | 5360 | 70% |
+| Validation | 765 | 10% |
+| Test | 1536 | 20% |
+| **Total** | **7661** | **100%** |
+
+A leakage check confirmed that there are no overlapping images between the training, validation, and test sets.
+
+## Model
+
+The final model is **EfficientNetB0** initialized with ImageNet pretrained weights.
+
+### Architecture
+
+- Input: `128x128x3`
+- EfficientNetB0 backbone
+- Global Average Pooling
+- Dense layer: `128` units with ReLU
+- Dropout: `0.40`
+- Output layer: `5` classes with Softmax
+
+### Training Strategy
+
+Training was performed in two stages:
+
+1. Initial training with the EfficientNetB0 backbone frozen.
+2. Partial backbone fine-tuning with Batch Normalization layers kept frozen.
+
+Fine-tuning used:
+
+- Optimizer: Adam
+- Learning rate: `1e-5`
+- Data augmentation: horizontal flip, rotation, zoom, and contrast
+- Best validation weights restored before saving the final model
+
+Best validation accuracy: **92.29%**
+
+## Final Test Results
+
+The final model was evaluated on the held-out test set containing **1536 images**.
+
+| Metric | Score |
+|---|---:|
+| Accuracy | **92.19%** |
+| Weighted Precision | **92.76%** |
+| Weighted Recall | **92.19%** |
+| Weighted F1 Score | **92.05%** |
+
+The evaluation results and generated reports are stored in:
+
+`results/evaluation/`
+
+Including:
+
+- Classification report
+- Confusion matrix
+- Evaluation metrics JSON
+- Model comparison CSV
+
+## Project Structure
+
+```text
 plant-disease-detection/
-│
-├── assets/
-│   └── sample_images/
-│
-├── assets/
-│   ├── Healthy Plant/
-│   ├── Early Blight/
-│   ├── Late Blight/
-│   ├── Powdery Mildew/
-│   └── Leaf Spot/
-│
-├── models/
-│   ├── best_model.keras
-│   ├── custom_cnn.keras
-│   ├── mobilenetv2.keras
-│   ├── efficientnetb0.keras
-│   └── class_names.json
-│
-├── results/
-│   ├── data_split.json
-│   ├── class_weights.json
-│   ├── model_comparison.json
-│   ├── training_metadata.json
-│   ├── model_summaries.txt
-│   │
-│   ├── training_history/
-│   │   ├── custom_cnn_history.json
-│   │   ├── custom_cnn_accuracy.png
-│   │   ├── custom_cnn_loss.png
-│   │   ├── mobilenetv2_history.json
-│   │   ├── mobilenetv2_accuracy.png
-│   │   ├── mobilenetv2_loss.png
-│   │   ├── efficientnetb0_history.json
-│   │   ├── efficientnetb0_accuracy.png
-│   │   └── efficientnetb0_loss.png
-│   │
-│   └── evaluation/
-│       ├── model_evaluation.json
-│       ├── model_comparison.csv
-│       ├── *_classification_report.txt
-│       ├── *_evaluation.json
-│       └── *_confusion_matrix.png
-│
 ├── app.py
 ├── train_model.py
 ├── evaluate_model.py
+├── README.md
+├── LICENSE
 ├── requirements.txt
 ├── .gitignore
-├── LICENSE
-└── README.md
-
-The "assets/", "models/", and "results/" directories are generated or populated according to the project workflow. The local assets itself is excluded from Git through ".gitignore".
-
-Dataset Organization
-
-The assets must be organized into one directory per class:
-
-assets/
-├── Healthy Plant/
-│   ├── image_001.jpg
-│   ├── image_002.jpg
-│   └── ...
-│
-├── Early Blight/
-│   ├── image_001.jpg
-│   ├── image_002.jpg
-│   └── ...
-│
-├── Late Blight/
-│   ├── image_001.jpg
-│   ├── image_002.jpg
-│   └── ...
-│
-├── Powdery Mildew/
-│   ├── image_001.jpg
-│   ├── image_002.jpg
-│   └── ...
-│
-└── Leaf Spot/
-    ├── image_001.jpg
-    ├── image_002.jpg
-    └── ...
-
-The directory names must match the five class names exactly because the training pipeline uses a fixed class order.
-
-The supported image formats are:
-
-- JPG
-- JPEG
-- PNG
-- BMP
-- GIF
-
-The assets is not included in this repository.
-
-Data Splitting
-
-The project uses a deterministic stratified split:
-
-Dataset Portion| Percentage
-Training| 80%
-Validation| 10%
-Test| 10%
-
-The split is created using a fixed random seed.
-
-The exact paths and labels belonging to each split are stored in:
-
-results/data_split.json
-
-This prevents the evaluation script from creating a different test set.
-
-Image Processing
-
-All images are resized to:
-
-128 × 128
-
-The raw image is passed to each model, while model-specific preprocessing is embedded in the model architecture.
-
-Custom CNN
-
-The Custom CNN contains:
-
-- Data augmentation
-- Rescaling from "[0, 255]" to "[0, 1]"
-- Four convolutional blocks
-- Batch normalization
-- Max pooling
-- Global average pooling
-- Dense classification layer
-- Dropout
-- Softmax output
-
-MobileNetV2
-
-MobileNetV2 uses ImageNet pretrained weights.
-
-The pipeline contains:
-
-- Data augmentation
-- MobileNetV2 preprocessing
-- Frozen feature extractor during initial training
-- Global average pooling
-- Dense classification layer
-- Dropout
-- Fine-tuning of the final portion of the feature extractor
-
-Batch normalization layers remain frozen during fine-tuning for training stability.
-
-EfficientNetB0
-
-EfficientNetB0 uses ImageNet pretrained weights.
-
-The pipeline contains:
-
-- Data augmentation
-- EfficientNetB0 built-in preprocessing
-- Frozen feature extractor during initial training
-- Global average pooling
-- Dense classification layer
-- Dropout
-- Fine-tuning of the final portion of the feature extractor
-
-Training Pipeline
-
-The complete training process is implemented in:
-
-train_model.py
-
-Run:
-
-python train_model.py
-
-The script performs the following operations:
-
-1. Validates the assets.
-2. Checks all required classes.
-3. Collects supported image files.
-4. Creates a stratified 80/10/10 split.
-5. Saves the exact split metadata.
-6. Calculates class weights.
-7. Saves the class mapping.
-8. Creates TensorFlow assetss.
-9. Trains the Custom CNN.
-10. Trains MobileNetV2.
-11. Fine-tunes MobileNetV2.
-12. Trains EfficientNetB0.
-13. Fine-tunes EfficientNetB0.
-14. Compares model performance on the validation set.
-15. Selects the best model using validation accuracy.
-16. Saves the selected model as "best_model.keras".
-17. Saves model-specific training histories.
-18. Generates training plots.
-19. Saves model comparison metadata.
-
-Model Selection
-
-The official best model is selected using:
-
-Validation Accuracy
-
-The test set is not used to select the best model.
-
-This separation helps avoid test-set leakage.
-
-The selected model is saved as:
-
-models/best_model.keras
-
-The individual models are also preserved:
-
-models/custom_cnn.keras
-models/mobilenetv2.keras
-models/efficientnetb0.keras
-
-Evaluation
-
-Final model evaluation is performed using:
-
-evaluate_model.py
-
-Run:
-
-python evaluate_model.py
-
-The script loads the exact test split saved by the training pipeline.
-
-The following metrics are calculated:
-
-- Test Loss
-- Accuracy
-- Weighted Precision
-- Weighted Recall
-- Weighted F1 Score
-- Macro Precision
-- Macro Recall
-- Macro F1 Score
-- Per-class precision
-- Per-class recall
-- Per-class F1 score
-- Confusion matrix
-
-Evaluation results are stored under:
-
-results/evaluation/
-
-Examples include:
-
-model_evaluation.json
-model_comparison.csv
-custom_cnn_classification_report.txt
-mobilenetv2_classification_report.txt
-efficientnetb0_classification_report.txt
-best_model_classification_report.txt
-
-Confusion matrices are also generated for each evaluated model.
-
-Important Evaluation Methodology
-
-The project separates model selection from final evaluation.
-
-During training:
-
-Training Set
-    ↓
-Model Training
-    ↓
-Validation Set
-    ↓
-Model Selection
-
-After the model has been selected:
-
-Selected Model
-    ↓
-Test Set
-    ↓
-Final Evaluation
-
-This prevents the test set from influencing model selection.
-
-Training Outputs
-
-After successful training, the following files are expected:
-
-models/
-├── best_model.keras
-├── custom_cnn.keras
-├── mobilenetv2.keras
-├── efficientnetb0.keras
-└── class_names.json
-
-The results directory contains:
-
-results/
-├── data_split.json
-├── class_weights.json
-├── model_comparison.json
-├── training_metadata.json
-├── model_summaries.txt
-├── training_history/
-└── evaluation/
-
-Installation
-
-Create a Python virtual environment using a Python version compatible with TensorFlow 2.15.
-
-Example:
-
-python -m venv .venv
-
-Activate the environment.
-
-Windows
-
-.venv\Scripts\activate
-
-Linux/macOS
-
-source .venv/bin/activate
-
-Install the dependencies:
-
+├── models/
+│   ├── efficientnetb0.keras
+│   ├── efficientnetb0_initial_best.keras
+│   └── class_names.json
+├── results/
+│   ├── data_split.json
+│   ├── model_summaries.txt
+│   └── evaluation/
+└── data/
+    └── split/
+        ├── train/
+        ├── validation/
+        └── test/
+```
+
+The dataset directories are excluded from Git tracking through `.gitignore`.
+
+## Installation
+
+Install the required dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-Requirements
+## Training
 
-The project uses:
+The training pipeline is implemented in `train_model.py`.
 
-- Python 3.9–3.11
-- TensorFlow 2.15.0
-- NumPy 1.26.4
-- Scikit-learn 1.4.2
-- Matplotlib 3.8.4
-- Streamlit 1.32.0
-- Pillow 10.2.0
+Run:
 
-The MobileNetV2 and EfficientNetB0 ImageNet weights may need to be downloaded during the first training run.
-
-Running the Complete Pipeline
-
-Step 1 — Prepare the Dataset
-
-Place the images inside the required class directories:
-
-assets/
-├── Healthy Plant/
-├── Early Blight/
-├── Late Blight/
-├── Powdery Mildew/
-└── Leaf Spot/
-
-Step 2 — Train the Models
-
+```bash
 python train_model.py
+```
 
-Wait until the training process completes.
+The script trains EfficientNetB0, performs fine-tuning, saves the best model, and stores training history and plots in `results/`.
 
-Step 3 — Evaluate the Models
+## Evaluation
 
+Run the final test evaluation with:
+
+```bash
 python evaluate_model.py
+```
 
-Step 4 — Start the Web Application
+The evaluation script generates accuracy, precision, recall, F1 score, classification report, confusion matrix, JSON results, and CSV results.
 
+## Streamlit Application
+
+Run the application with:
+
+```bash
 streamlit run app.py
+```
 
-The Streamlit application will load the trained models from:
+The application allows users to upload a tomato leaf image and view:
 
-models/
+1. Predicted class
+2. Prediction confidence
+3. Top-3 predictions
+4. Class probabilities
 
-Web Application
+The application uses the final model stored at `models/efficientnetb0.keras`.
 
-The application provides:
+## Reproducibility
 
-- Model selection
-- Image upload
-- Image preview
-- Predicted class
-- Prediction confidence
-- Top-3 predictions
-- Probability for every supported class
-- Confidence warning for predictions below 60%
+The dataset split uses random seed `123`.
 
-The application supports:
+The project records the dataset distribution, train/validation/test split, model architecture, training configuration, training history, evaluation metrics, classification report, and confusion matrix.
 
-.jpg
-.jpeg
-.png
+## Limitations
 
-Confidence Threshold
+- The model is trained on specific tomato leaf disease categories.
+- Performance may decrease on real-world field images with different lighting, backgrounds, or camera conditions.
+- The model does not cover every possible tomato disease.
+- Predictions should not be considered professional agricultural diagnosis.
 
-The application uses a 60% confidence threshold as an interface warning.
+## Future Improvements
 
-This does not mean that a prediction above 60% is guaranteed to be correct.
+- Testing on real-world field images
+- Increasing image resolution
+- Exploring additional transfer-learning architectures
+- Advanced augmentation and class balancing
+- Model calibration
+- Grad-CAM explainability
+- Production API or mobile deployment
 
-Model confidence should not be interpreted as a professional agricultural diagnosis.
+## Disclaimer
 
-Reproducibility
+This project is intended for educational and research purposes only.
 
-The project uses a fixed random seed:
+Predictions should not be treated as professional agricultural diagnosis or used as the sole basis for crop-management decisions.
 
-123
+## License
 
-The seed is applied to:
-
-- Python random
-- NumPy
-- TensorFlow
-- Dataset splitting
-
-The exact train, validation, and test image lists are also stored in:
-
-results/data_split.json
-
-Limitations
-
-The system is an image-classification model and its performance depends on factors such as:
-
-- Dataset quality
-- Dataset size
-- Class balance
-- Image quality
-- Lighting conditions
-- Background variation
-- Leaf orientation
-- Similarity between disease categories
-- Distribution differences between training images and real-world images
-
-Predictions should therefore be considered model outputs rather than definitive agricultural diagnoses.
-
-Recommended Improvements
-
-Possible future improvements include:
-
-- Increasing assets size and diversity
-- Collecting field images under real-world conditions
-- External validation on an independent assets
-- Duplicate-image and near-duplicate detection
-- Advanced augmentation strategies
-- Hyperparameter optimization
-- Model explainability using Grad-CAM
-- Confidence calibration
-- Experiment tracking
-- Deployment using a production inference service
-
-License
-
-This project is released under the MIT License.
-
-See:
-
-LICENSE
-
-for the complete license text.
+This project is released under the license included in the `LICENSE` file.

@@ -59,3 +59,10 @@ dataset/
 
 *.tmp
 *.temp
+# Project dataset
+data/plant_disease_dataset/
+data/split/
+# Archives
+*.zip
+# Colab / local artifacts
+/content/

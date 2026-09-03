@@ -1,0 +1,2 @@
+model,test_loss,test_accuracy,weighted_precision,weighted_recall,weighted_f1,macro_precision,macro_recall,macro_f1
+efficientnetb0,0.22846992313861847,0.921875,0.9276389999536295,0.921875,0.9205251084604661,0.9286683899665956,0.9057299873570954,0.9113435085508355

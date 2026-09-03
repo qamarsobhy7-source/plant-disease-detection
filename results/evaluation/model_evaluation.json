@@ -1,0 +1,29 @@
+{
+    "evaluation_type": "final_test_evaluation",
+    "test_size": 1536,
+    "class_names": [
+        "Early_Blight",
+        "Healthy",
+        "Late_Blight",
+        "Septoria_Leaf_Spot",
+        "Target_Spot"
+    ],
+    "models": [
+        {
+            "model": "efficientnetb0",
+            "model_path": "models/efficientnetb0.keras",
+            "test_loss": 0.22846992313861847,
+            "test_accuracy": 0.921875,
+            "weighted_precision": 0.9276389999536295,
+            "weighted_recall": 0.921875,
+            "weighted_f1": 0.9205251084604661,
+            "macro_precision": 0.9286683899665956,
+            "macro_recall": 0.9057299873570954,
+            "macro_f1": 0.9113435085508355,
+            "classification_report_path": "results/evaluation/efficientnetb0_classification_report.txt",
+            "confusion_matrix_path": "results/evaluation/efficientnetb0_confusion_matrix.png"
+        }
+    ],
+    "highest_test_accuracy_model": "efficientnetb0",
+    "highest_test_accuracy": 0.921875
+}

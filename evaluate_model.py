@@ -22,7 +22,7 @@ from sklearn.metrics import (
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 
-DATA_DIR = Path("assets")
+DATA_DIR = Path("data/split")
 MODELS_DIR = Path("models")
 RESULTS_DIR = Path("results")
 
@@ -33,10 +33,8 @@ CLASS_NAMES_FILE = MODELS_DIR / "class_names.json"
 
 
 MODEL_FILES = {
-    "custom_cnn": MODELS_DIR / "custom_cnn.keras",
-    "mobilenetv2": MODELS_DIR / "mobilenetv2.keras",
-    "efficientnetb0": MODELS_DIR / "efficientnetb0.keras",
-    "best_model": MODELS_DIR / "best_model.keras",
+    "efficientnetb0": Path("models/efficientnetb0.keras"),
+    #
 }
 
 
@@ -103,7 +101,10 @@ def create_assets(paths, labels):
     assets = tf.data.Dataset.from_tensor_slices(
         (
             np.asarray(paths, dtype=str),
-            np.asarray(labels, dtype=np.int32),
+            tf.keras.utils.to_categorical(
+                np.asarray(labels, dtype=np.int32),
+                num_classes=len(CLASS_NAMES),
+            ),
         )
     )
 
@@ -298,7 +299,7 @@ def evaluate_model(
         )
 
         y_true.extend(
-            labels.numpy().tolist()
+            np.argmax(labels.numpy(), axis=1).tolist()
         )
 
         y_pred.extend(
@@ -598,7 +599,6 @@ def main():
     # Determine best test performer
     # --------------------------------------------------------
     # This is only a reporting comparison.
-    # The official best_model was selected during training
     # using validation accuracy.
 
     best_test_model = max(
