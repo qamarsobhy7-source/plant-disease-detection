@@ -289,7 +289,6 @@ def evaluate_model(
 
     y_true = []
     y_pred = []
-    probabilities = []
 
     for images, labels in test_assets:
 
@@ -311,9 +310,6 @@ def evaluate_model(
             predictions.tolist()
         )
 
-        probabilities.extend(
-            preds.tolist()
-        )
 
     precision = precision_score(
         y_true,
@@ -604,7 +600,7 @@ def main():
     # Determine best test performer
     # --------------------------------------------------------
     # This is only a reporting comparison.
-    # using validation accuracy.
+    # The best model is selected using test accuracy.
 
     best_test_model = max(
         results,
