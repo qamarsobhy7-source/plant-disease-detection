@@ -60,7 +60,6 @@ dataset/
 *.tmp
 *.temp
 # Project dataset
-assets/
 data/plant_disease_dataset/
 data/split/
 # Archives

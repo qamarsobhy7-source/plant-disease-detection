@@ -12,6 +12,11 @@ Try the deployed Streamlit application:
 
 **[Open the Live Demo](https://plant-disease-detection68.streamlit.app/)**
 
+### Streamlit Demo
+
+![Streamlit Prediction Demo](assets/streamlit-prediction.png)
+
+
 The application provides an interactive interface where users can upload a tomato leaf image and receive the predicted class, confidence score, top-3 predictions, and class probabilities.
 
 
