@@ -196,27 +196,6 @@ Evaluation metrics are also stored in:
 
 ## Results and Visualizations
 
-The repository contains the main training and evaluation artifacts.
-
-### Training Results
-
-- `results/efficientnetb0_initial_training_accuracy.png`
-- `results/efficientnetb0_initial_training_loss.png`
-- `results/efficientnetb0_initial_training_history.json`
-- `results/efficientnetb0_finetune_training_accuracy.png`
-- `results/efficientnetb0_finetune_training_loss.png`
-- `results/efficientnetb0_finetune_training_history.json`
-
-### Evaluation Results
-
-- `results/evaluation/efficientnetb0_classification_report.txt`
-- `results/evaluation/efficientnetb0_confusion_matrix.png`
-- `results/evaluation/efficientnetb0_evaluation.json`
-- `results/evaluation/model_evaluation.json`
-- `results/evaluation/model_comparison.csv`
-
-## Results and Visualizations
-
 ### Training Results
 
 The following plots show the training and validation performance during model development.
