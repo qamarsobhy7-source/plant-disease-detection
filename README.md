@@ -72,14 +72,47 @@ The exact test-set paths and labels are recorded in `results/data_split.json`.
 
 ### Dataset Availability
 
-The image dataset is not included in this repository and is excluded through `.gitignore`.
+This project uses the tomato disease subset of the [PlantVillage Dataset](https://github.com/spMohanty/PlantVillage-Dataset).
 
-For local training and full test-set evaluation, the dataset must be available under:
+The original PlantVillage Dataset contains images of healthy and diseased plant leaves and is publicly available for research and educational use.
 
-data/split/
-- train/
-- validation/
-- test/
+For this project, the tomato subset was prepared by:
+
+- Selecting the five target classes used by the project
+- Removing duplicate images
+- Creating a reproducible train/validation/test split
+- Verifying that there is no image overlap between the splits
+
+The final dataset used for this project contains **7,661 images**:
+
+- Training: **5,360**
+- Validation: **765**
+- Test: **1,536**
+
+The image dataset is **not included in this repository** and is intentionally excluded through `.gitignore`.
+
+For local training and full test-set evaluation, prepare the dataset under:
+
+`data/split/`
+
+Required structure:
+
+- `data/split/train/Early_Blight/`
+- `data/split/train/Healthy/`
+- `data/split/train/Late_Blight/`
+- `data/split/train/Septoria_Leaf_Spot/`
+- `data/split/train/Target_Spot/`
+- `data/split/validation/` with the same five class directories
+- `data/split/test/` with the same five class directories
+
+The dataset directories under `data/split/` are intentionally excluded from Git tracking because the image dataset is large and is not required for running the already-trained model and Streamlit application.
+
+**Dataset source:** [PlantVillage Dataset](https://github.com/spMohanty/PlantVillage-Dataset)
+
+**Original dataset paper:**  
+Mohanty, S. P., Hughes, D. P., & Salathé, M. (2016). *Using Deep Learning for Image-Based Plant Disease Detection.* Frontiers in Plant Science, 7, 1419.
+
+https://doi.org/10.3389/fpls.2016.01419
 
 ## Model
 
@@ -164,6 +197,24 @@ Evaluation metrics are also stored in:
 The repository contains the main training and evaluation artifacts.
 
 ### Training Results
+
+#### Initial Training
+
+![Initial Training Accuracy](results/efficientnetb0_initial_training_accuracy.png)
+
+![Initial Training Loss](results/efficientnetb0_initial_training_loss.png)
+
+#### Fine-Tuning
+
+![Fine-Tuning Accuracy](results/efficientnetb0_finetune_training_accuracy.png)
+
+![Fine-Tuning Loss](results/efficientnetb0_finetune_training_loss.png)
+
+### Confusion Matrix
+
+![EfficientNetB0 Confusion Matrix](results/evaluation/efficientnetb0_confusion_matrix.png)
+
+### Training Artifact Files
 
 - `results/efficientnetb0_initial_training_accuracy.png`
 - `results/efficientnetb0_initial_training_loss.png`
