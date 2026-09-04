@@ -1,11 +1,19 @@
 # Plant Disease Detection
 
-🚀 [Live Demo](https://plant-disease-detection68.streamlit.app/)
 A deep learning-based computer vision system for classifying tomato leaf images into five tomato leaf disease and health categories using TensorFlow, Keras, and EfficientNetB0.
 
 The project includes model training, fine-tuning, independent test-set evaluation, performance analysis, and a Streamlit web application for image-based prediction.
 
 > Educational and research use only. This system is not intended to replace professional agricultural diagnosis.
+
+## 🚀 Live Demo
+
+Try the deployed Streamlit application:
+
+**[Open the Live Demo](https://plant-disease-detection68.streamlit.app/)**
+
+The application provides an interactive interface where users can upload a tomato leaf image and receive the predicted class, confidence score, top-3 predictions, and class probabilities.
+
 
 ## Overview
 
@@ -110,13 +118,15 @@ DOI: https://doi.org/10.3389/fpls.2016.01419
 
 ## Model
 
-### ⭐ Final Model
+### Final Model
 
-**Final trained model:** `models/efficientnetb0.keras`
+The final model used for the reported test evaluation and Streamlit deployment is:
 
-This is the **final EfficientNetB0 model** used by the Streamlit application for image prediction.
+`models/efficientnetb0.keras`
 
-The model uses ImageNet-pretrained weights and was fine-tuned for the five tomato leaf classes supported by this project.
+This is the final EfficientNetB0 classifier used for inference on the five supported tomato leaf classes.
+
+The model was initialized with ImageNet-pretrained weights and fine-tuned using the training strategy described below.
 
 
 The final classifier uses EfficientNetB0 initialized with ImageNet-pretrained weights.
@@ -222,6 +232,7 @@ The confusion matrix below provides a visual summary of the final model predicti
 ## Project Structure
 
 plant-disease-detection/
+- assets/
 - app.py
 - train_model.py
 - evaluate_model.py
@@ -341,6 +352,17 @@ The application uses:
 
 - `models/efficientnetb0.keras`
 - `models/class_names.json`
+
+### Inference Workflow
+
+When a user uploads an image through the Streamlit application:
+
+1. The image is converted to RGB format.
+2. The image is resized to 128 x 128 pixels.
+3. The trained EfficientNetB0 model performs inference.
+4. The predicted class is selected from the five supported classes.
+5. The application displays the confidence score, top-3 predictions, and probabilities for all supported classes.
+6. A confidence threshold provides additional interpretation when prediction confidence is low.
 
 ## Reproducibility
 
