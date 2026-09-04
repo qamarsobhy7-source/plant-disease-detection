@@ -138,8 +138,13 @@ def reconstruct_test_set(split_data):
 
         if not absolute_path.exists():
             raise FileNotFoundError(
-                "A test image from the saved split could not "
-                f"be found: {absolute_path}"
+                f"Test dataset image not found: {absolute_path}\n\n"
+                "The evaluation script requires the original dataset "
+                "to be available locally at 'data/split/'.\n"
+                "The dataset is intentionally excluded from GitHub.\n"
+                "Please download/prepare the dataset and place the "
+                "test split under 'data/split/test/' before running "
+                "evaluate_model.py."
             )
 
         test_paths.append(
