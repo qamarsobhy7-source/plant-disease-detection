@@ -1,5 +1,6 @@
 # Plant Disease Detection
 
+🚀 [Live Demo](https://plant-disease-detection68.streamlit.app/)
 A deep learning-based computer vision system for classifying tomato leaf images into five tomato leaf disease and health categories using TensorFlow, Keras, and EfficientNetB0.
 
 The project includes model training, fine-tuning, independent test-set evaluation, performance analysis, and a Streamlit web application for image-based prediction.
