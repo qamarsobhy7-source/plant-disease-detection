@@ -72,49 +72,51 @@ The exact test-set paths and labels are recorded in `results/data_split.json`.
 
 ### Dataset Availability
 
-This project uses the tomato disease subset of the [PlantVillage Dataset](https://github.com/spMohanty/PlantVillage-Dataset).
+This project uses a prepared tomato disease subset of the [PlantVillage Dataset](https://github.com/spMohanty/PlantVillage-Dataset).
 
-The original PlantVillage Dataset contains images of healthy and diseased plant leaves and is publicly available for research and educational use.
+The dataset was prepared by selecting the five tomato classes used by the project, removing duplicate images, creating a reproducible train/validation/test split, and verifying that there is no image overlap between the splits.
 
-For this project, the tomato subset was prepared by:
+The final prepared dataset contains **7,661 images**:
 
-- Selecting the five target classes used by the project
-- Removing duplicate images
-- Creating a reproducible train/validation/test split
-- Verifying that there is no image overlap between the splits
+| Split | Images |
+|---|---:|
+| Training | 5,360 |
+| Validation | 765 |
+| Test | 1,536 |
+| **Total** | **7,661** |
 
-The final dataset used for this project contains **7,661 images**:
+The image dataset is **not included in this repository** because of its size and is intentionally excluded through `.gitignore`.
 
-- Training: **5,360**
-- Validation: **765**
-- Test: **1,536**
-
-The image dataset is **not included in this repository** and is intentionally excluded through `.gitignore`.
-
-For local training and full test-set evaluation, prepare the dataset under:
+For local training and full test-set evaluation, place the prepared dataset under:
 
 `data/split/`
 
-Required structure:
+with the following structure:
 
-- `data/split/train/Early_Blight/`
-- `data/split/train/Healthy/`
-- `data/split/train/Late_Blight/`
-- `data/split/train/Septoria_Leaf_Spot/`
-- `data/split/train/Target_Spot/`
-- `data/split/validation/` with the same five class directories
-- `data/split/test/` with the same five class directories
+`train/`, `validation/`, and `test/`, each containing:
 
-The dataset directories under `data/split/` are intentionally excluded from Git tracking because the image dataset is large and is not required for running the already-trained model and Streamlit application.
+- `Early_Blight/`
+- `Healthy/`
+- `Late_Blight/`
+- `Septoria_Leaf_Spot/`
+- `Target_Spot/`
 
 **Dataset source:** [PlantVillage Dataset](https://github.com/spMohanty/PlantVillage-Dataset)
 
-**Original dataset paper:**  
-Mohanty, S. P., Hughes, D. P., & Salathé, M. (2016). *Using Deep Learning for Image-Based Plant Disease Detection.* Frontiers in Plant Science, 7, 1419.
+**Original research paper:** Mohanty, S. P., Hughes, D. P., & Salathé, M. (2016). *Using Deep Learning for Image-Based Plant Disease Detection.* Frontiers in Plant Science, 7, 1419.
 
-https://doi.org/10.3389/fpls.2016.01419
+DOI: https://doi.org/10.3389/fpls.2016.01419
 
 ## Model
+
+### ⭐ Final Model
+
+**Final trained model:** `models/efficientnetb0.keras`
+
+This is the **final EfficientNetB0 model** used by the Streamlit application for image prediction.
+
+The model uses ImageNet-pretrained weights and was fine-tuned for the five tomato leaf classes supported by this project.
+
 
 The final classifier uses EfficientNetB0 initialized with ImageNet-pretrained weights.
 
@@ -198,24 +200,6 @@ The repository contains the main training and evaluation artifacts.
 
 ### Training Results
 
-#### Initial Training
-
-![Initial Training Accuracy](results/efficientnetb0_initial_training_accuracy.png)
-
-![Initial Training Loss](results/efficientnetb0_initial_training_loss.png)
-
-#### Fine-Tuning
-
-![Fine-Tuning Accuracy](results/efficientnetb0_finetune_training_accuracy.png)
-
-![Fine-Tuning Loss](results/efficientnetb0_finetune_training_loss.png)
-
-### Confusion Matrix
-
-![EfficientNetB0 Confusion Matrix](results/evaluation/efficientnetb0_confusion_matrix.png)
-
-### Training Artifact Files
-
 - `results/efficientnetb0_initial_training_accuracy.png`
 - `results/efficientnetb0_initial_training_loss.png`
 - `results/efficientnetb0_initial_training_history.json`
@@ -230,6 +214,30 @@ The repository contains the main training and evaluation artifacts.
 - `results/evaluation/efficientnetb0_evaluation.json`
 - `results/evaluation/model_evaluation.json`
 - `results/evaluation/model_comparison.csv`
+
+## Results and Visualizations
+
+### Training Results
+
+The following plots show the training and validation performance during model development.
+
+#### Initial Training
+
+![Initial Training Accuracy](results/efficientnetb0_initial_training_accuracy.png)
+
+![Initial Training Loss](results/efficientnetb0_initial_training_loss.png)
+
+#### Fine-Tuning
+
+![Fine-Tuning Accuracy](results/efficientnetb0_finetune_training_accuracy.png)
+
+![Fine-Tuning Loss](results/efficientnetb0_finetune_training_loss.png)
+
+### Evaluation Results
+
+The confusion matrix below provides a visual summary of the final model predictions across the five supported classes.
+
+![EfficientNetB0 Confusion Matrix](results/evaluation/efficientnetb0_confusion_matrix.png)
 
 ## Project Structure
 
