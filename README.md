@@ -10,7 +10,7 @@ The project includes model training, fine-tuning, independent test-set evaluatio
 
 Try the deployed Streamlit application:
 
-**[Open the Live Demo](https://plant-disease-detection68.streamlit.app/)**
+**[Open the Live Demo](https://plant-disease-ai6.streamlit.app/)**
 
 ### Streamlit Demo
 
