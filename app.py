@@ -10,8 +10,8 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
-# إعدادات الصفحة
-st.set_page_config(page_title="Verdant AI", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
+# إعدادات الصفحة (عشان نخفي القوائم الافتراضية)
+st.set_page_config(page_title="Verdant AI - Plant Doctor", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
 
 # --- CSS مخصص لتصميم Modern & Clean ---
 st.markdown("""
@@ -22,8 +22,8 @@ st.markdown("""
     header {visibility: hidden;}
     
     /* تغيير الخط والخلفية */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #f8fafc; }
 
     /* تنسيق العنوان الرئيسي */
@@ -67,7 +67,7 @@ st.markdown("""
     }
     .stButton>button:hover { background: #059669; transform: translateY(-1px); }
 
-    /* كروت النتائج */
+    /* كروت النتائج (Bento Style) */
     .result-card {
         background: white;
         border-radius: 12px;
@@ -79,9 +79,6 @@ st.markdown("""
     .result-card.danger { border-left: 4px solid #ef4444; }
     .result-label { font-size: 0.875rem; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
     .result-value { font-size: 1.5rem; color: #0f172a; font-weight: 700; margin-top: 0.5rem; }
-    
-    /* تنسيق الـ Sidebar */
-    [data-testid="stSidebar"] { background-color: white; border-right: 1px solid #e2e8f0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,30 +109,27 @@ val_transforms = transforms.Compose([
 ])
 
 treatments = {
-    "Tomato___Early_blight": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Crop rotation.",
+    "Tomato___Early_blight": "Organic: Neem oil spray. Chemical: Chlorothalonil. Prevention: Crop rotation.",
     "Tomato___Late_blight": "Organic: Copper spray. Chemical: Mancozeb. Prevention: Avoid overhead watering.",
     "Apple___Apple_scab": "Organic: Sulfur spray. Chemical: Captan. Prevention: Remove fallen leaves.",
     "Potato___healthy": "Plant is healthy! Maintain regular watering.",
 }
 
 # --- واجهة المستخدم ---
-# الشريط الجانبي
+st.markdown("<h1 class='main-title'>🌿 Verdant AI</h1>", unsafe_allow_html=True)
+st.markdown("<p class='sub-title'>Advanced Plant Disease Diagnosis with Explainable AI</p>", unsafe_allow_html=True)
+
+# شريط الرفع المخفي (في الـ Sidebar)
 with st.sidebar:
-    st.markdown("<h2 style='color: #10b981;'>🌿 Verdant AI</h2>", unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("### 📸 Upload Image")
-    uploaded_file = st.file_uploader("Choose a leaf image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-    
+    st.markdown("### 📸 Upload Leaf Image")
+    uploaded_file = st.file_uploader("Choose a clear photo of a plant leaf", type=["jpg", "jpeg", "png"])
     if uploaded_file:
         image = Image.open(uploaded_file).convert('RGB')
         st.image(image, caption="Uploaded Image", use_column_width=True)
         st.markdown("<br>", unsafe_allow_html=True)
         diagnose_btn = st.button("Analyze Leaf")
 
-# الصفحة الرئيسية
-st.markdown("<h1 class='main-title'>Plant Disease Diagnosis</h1>", unsafe_allow_html=True)
-st.markdown("<p class='sub-title'>Upload a leaf image to instantly detect diseases and get AI-powered treatment recommendations.</p>", unsafe_allow_html=True)
-
+# عرض المحتوى الرئيسي
 if uploaded_file and diagnose_btn:
     with st.spinner("Analyzing leaf..."):
         # Prediction
@@ -154,7 +148,7 @@ if uploaded_file and diagnose_btn:
         rgb_img = np.float32(image.resize((224, 224))) / 255
         visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
         
-        # عرض الصور
+        # عرض الصور في صف واحد
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("<div class='upload-box'>", unsafe_allow_html=True)
@@ -164,16 +158,16 @@ if uploaded_file and diagnose_btn:
             
         with col2:
             st.markdown("<div class='upload-box'>", unsafe_allow_html=True)
-            st.markdown("**AI Focus Area (Explainable AI)**")
+            st.markdown("**AI Focus Area (Grad-CAM)**")
             st.image(visualization, use_column_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # عرض النتائج في كروت
+        # عرض النتائج في كروت (Bento Grid)
         st.markdown("### 📊 Diagnosis Results")
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Crop</div><div class='result-value'>{crop}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='result-card'><div class='result-label'>Detected Crop</div><div class='result-value'>{crop}</div></div>", unsafe_allow_html=True)
         
         with c2:
             is_healthy = disease.lower() == 'healthy'
@@ -182,16 +176,18 @@ if uploaded_file and diagnose_btn:
             st.markdown(f"<div class='result-card {card_class}'><div class='result-label'>Status</div><div class='result-value'>{status_icon} {disease}</div></div>", unsafe_allow_html=True)
             
         with c3:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Confidence</div><div class='result-value'>{conf.item()*100:.1f}%</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='result-card'><div class='result-label'>Confidence Score</div><div class='result-value'>{conf.item()*100:.1f}%</div></div>", unsafe_allow_html=True)
 
         # التوصيات
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("### 💊 Treatment Recommendation")
         st.info(treatments.get(pred_class, "Consult a local agricultural expert for specific treatment."))
+
 else:
-    # شكل افتراضي عند عدم رفع صورة
+    # الشاشة الافتراضية (Hero Section) قبل رفع الصورة
     st.markdown("""
-    <div style='text-align: center; padding: 4rem 2rem; background: white; border-radius: 16px; border: 2px dashed #cbd5e1;'>
-        <h3 style='color: #94a3b8;'>👈 Please upload an image from the sidebar</h3>
+    <div style='text-align: center; padding: 4rem 2rem; background: white; border-radius: 16px; border: 2px dashed #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+        <h3 style='color: #64748b; font-weight: 500;'>👈 Please upload an image from the sidebar to begin your diagnosis.</h3>
+        <p style='color: #94a3b8; font-size: 0.9rem; margin-top: 1rem;'>Supported crops: Apple, Tomato, Potato, Corn, Grape, and more.</p>
     </div>
     """, unsafe_allow_html=True)
