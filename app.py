@@ -108,12 +108,48 @@ val_transforms = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
+
 treatments = {
-    "Tomato___Early_blight": "Organic: Neem oil spray. Chemical: Chlorothalonil. Prevention: Crop rotation.",
-    "Tomato___Late_blight": "Organic: Copper spray. Chemical: Mancozeb. Prevention: Avoid overhead watering.",
-    "Apple___Apple_scab": "Organic: Sulfur spray. Chemical: Captan. Prevention: Remove fallen leaves.",
-    "Potato___healthy": "Plant is healthy! Maintain regular watering.",
+    "Apple___Apple_scab": "Organic: Sulfur or copper sprays. Chemical: Captan or Myclobutanil. Prevention: Remove fallen leaves, prune for airflow.",
+    "Apple___Black_rot": "Organic: Copper fungicides. Chemical: Captan. Prevention: Remove infected branches and mummified fruits.",
+    "Apple___Cedar_apple_rust": "Organic: Neem oil. Chemical: Myclobutanil. Prevention: Remove nearby cedar/juniper trees.",
+    "Apple___healthy": "Plant is healthy! Maintain regular watering and monitor for pests.",
+    "Blueberry___healthy": "Plant is healthy! Ensure acidic soil (pH 4.5-5.5) and proper drainage.",
+    "Cherry_(including_sour)___Powdery_mildew": "Organic: Potassium bicarbonate or Neem oil. Chemical: Sulfur. Prevention: Ensure good air circulation.",
+    "Cherry_(including_sour)___healthy": "Plant is healthy! Prune annually and monitor for pests.",
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": "Organic: Crop rotation. Chemical: Strobilurin fungicides. Prevention: Use resistant hybrids, tillage.",
+    "Corn_(maize)___Common_rust_": "Organic: Sulfur dust. Chemical: Azoxystrobin. Prevention: Plant resistant varieties early.",
+    "Corn_(maize)___Northern_Leaf_Blight": "Organic: Neem oil. Chemical: Propiconazole. Prevention: Crop rotation and residue management.",
+    "Corn_(maize)___healthy": "Plant is healthy! Maintain proper nitrogen levels and watering.",
+    "Grape___Black_rot": "Organic: Copper fungicides. Chemical: Myclobutanil. Prevention: Remove mummified berries, canopy management.",
+    "Grape___Esca_(Black_Measles)": "Organic: Pruning wounds protection. Chemical: No effective chemical cure; remove infected vines. Prevention: Avoid large pruning wounds.",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": "Organic: Copper spray. Chemical: Mancozeb. Prevention: Improve air circulation.",
+    "Grape___healthy": "Plant is healthy! Monitor for pests and maintain vine balance.",
+    "Orange___Haunglongbing_(Citrus_greening)": "Organic: No cure, control psyllid vector. Chemical: Imidacloprid for psyllids. Prevention: Use disease-free nursery stock.",
+    "Peach___Bacterial_spot": "Organic: Copper sprays. Chemical: Oxytetracycline. Prevention: Plant resistant varieties, avoid overhead watering.",
+    "Peach___healthy": "Plant is healthy! Prune regularly for light penetration.",
+    "Pepper,_bell___Bacterial_spot": "Organic: Copper + Mancozeb. Chemical: Fixed copper. Prevention: Use pathogen-free seeds, crop rotation.",
+    "Pepper,_bell___healthy": "Plant is healthy! Maintain consistent soil moisture.",
+    "Potato___Early_blight": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Crop rotation, avoid overhead irrigation.",
+    "Potato___Late_blight": "Organic: Copper spray. Chemical: Mancozeb or Chlorothalonil. Prevention: Plant certified seeds, destroy cull piles.",
+    "Potato___healthy": "Plant is healthy! Hill soil around stems to protect tubers.",
+    "Raspberry___healthy": "Plant is healthy! Prune old canes and ensure good drainage.",
+    "Soybean___healthy": "Plant is healthy! Rotate crops and monitor for aphids.",
+    "Squash___Powdery_mildew": "Organic: Potassium bicarbonate, milk spray. Chemical: Myclobutanil. Prevention: Plant in full sun, space plants well.",
+    "Strawberry___Leaf_scorch": "Organic: Remove infected leaves, Neem oil. Chemical: Captan. Prevention: Ensure good air circulation, avoid overhead watering.",
+    "Strawberry___healthy": "Plant is healthy! Renovate beds after harvest and maintain mulch.",
+    "Tomato___Bacterial_spot": "Organic: Copper sprays. Chemical: Fixed copper. Prevention: Use certified seeds, crop rotation.",
+    "Tomato___Early_blight": "Organic: Neem oil or Copper. Chemical: Chlorothalonil. Prevention: Mulch to prevent soil splash, crop rotation.",
+    "Tomato___Late_blight": "Organic: Copper spray. Chemical: Mancozeb. Prevention: Avoid overhead watering, destroy infected plants immediately.",
+    "Tomato___Leaf_Mold": "Organic: Improve ventilation. Chemical: Chlorothalonil. Prevention: Reduce humidity in greenhouse.",
+    "Tomato___Septoria_leaf_spot": "Organic: Copper spray. Chemical: Mancozeb. Prevention: Remove lower infected leaves, mulch.",
+    "Tomato___Spider_mites Two-spotted_spider_mite": "Organic: Insecticidal soap or Neem oil. Chemical: Abamectin. Prevention: Maintain humidity, wash plants with water.",
+    "Tomato___Target_Spot": "Organic: Copper fungicides. Chemical: Azoxystrobin. Prevention: Crop rotation, remove debris.",
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": "Organic: Control whiteflies. Chemical: Imidacloprid for whiteflies. Prevention: Use virus-resistant varieties, row covers.",
+    "Tomato___Tomato_mosaic_virus": "Organic: No cure, remove infected plants. Chemical: None (control aphids). Prevention: Disinfect tools, wash hands before handling.",
+    "Tomato___healthy": "Plant is healthy! Provide support (stakes/cages) and consistent watering."
 }
+
 
 # --- واجهة المستخدم ---
 st.markdown("<h1 class='main-title'>🌿 Verdant AI</h1>", unsafe_allow_html=True)
