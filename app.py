@@ -51,11 +51,19 @@ st.markdown("""
     .result-label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
     .result-value { font-size: 1.4rem; color: #0f172a; font-weight: 700; margin-top: 0.2rem; }
 
-    /* خطوات كيف يعمل التطبيق */
-    .step-box { text-align: center; padding: 1rem; }
-    .step-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-    .step-title { font-weight: 600; color: #0f172a; margin-bottom: 0.2rem; }
-    .step-desc { font-size: 0.85rem; color: #64748b; }
+    /* خطوات كيف يعمل التطبيق (تصميم كروت مودرن) */
+    .step-box { 
+        background: white;
+        border-radius: 12px; 
+        padding: 1.5rem 1rem; 
+        text-align: center; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1rem;
+    }
+    .step-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .step-title { font-weight: 700; color: #0f172a; margin-bottom: 0.3rem; font-size: 1.1rem; }
+    .step-desc { font-size: 0.9rem; color: #64748b; line-height: 1.4; }
 </style>
 """, unsafe_allow_html=True)
 
