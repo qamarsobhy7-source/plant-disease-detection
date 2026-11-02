@@ -10,7 +10,6 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
-# التغيير الأهم: استخدام شاشة كاملة (wide) بدل النص (centered)
 st.set_page_config(page_title="Verdant AI", page_icon="🌿", layout="wide")
 
 st.markdown("""
@@ -19,67 +18,74 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
     
-    /* خلفية متدرجة جميلة جداً */
-    .stApp { 
-        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-    }
+    /* خلفية متدرجة مريحة جداً */
+    .stApp { background: radial-gradient(circle at top right, #e0f2fe 0%, #f0fdf4 100%); }
+    .block-container { padding-top: 3rem; padding-bottom: 3rem; max-width: 1200px; }
 
-    /* تقليل المسافات الفاضية فوق وتحت */
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1100px; }
+    /* العناوين */
+    .main-title { font-size: 3.5rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 0.5rem; letter-spacing: -1px; }
+    .main-title span { color: #10b981; }
+    .sub-title { font-size: 1.2rem; color: #64748b; text-align: center; margin-bottom: 3rem; font-weight: 400; }
 
-    .main-title { font-size: 3rem; font-weight: 700; color: #0f172a; text-align: center; margin-bottom: 0.5rem; }
-    .sub-title { font-size: 1.2rem; color: #64748b; text-align: center; margin-bottom: 3rem; }
-
-    /* تكبير وتجميل مربع الرفع */
+    /* تصميم مربع الرفع (شكله زجاجي واحترافي) */
     [data-testid="stFileUploader"] {
-        background-color: white;
-        border-radius: 20px;
-        padding: 3rem 2rem;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.15);
         border: 2px dashed #10b981;
-        margin-bottom: 3rem;
+        margin: 0 auto 3rem auto;
+        max-width: 600px;
         text-align: center;
+        transition: all 0.3s ease;
     }
+    [data-testid="stFileUploader"]:hover {
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.25);
+    }
+    
+    /* إخفاء المربع الرمادي المزعج الخاص بـ Streamlit */
     [data-testid="stFileUploader"] section { 
-        background: #f0fdf4; 
-        border-radius: 12px; 
+        background: transparent; 
         border: none; 
-        display: flex; 
-        justify-content: center; 
     }
     [data-testid="stFileUploader"] button { 
         background: #10b981; 
         color: white; 
         border: none; 
-        border-radius: 8px; 
+        border-radius: 50px; 
         padding: 0.8rem 2rem; 
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
+        width: 100%;
+        max-width: 250px;
+        margin: 0 auto;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
     }
 
-    /* كروت الخطوات */
-    .step-box { 
+    /* كروت المميزات */
+    .feature-card { 
         background: white;
-        border-radius: 16px; 
+        border-radius: 20px; 
         padding: 2rem 1.5rem; 
         text-align: center; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #e2e8f0;
-        transition: transform 0.2s;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border: 1px solid #f1f5f9;
+        height: 100%;
     }
-    .step-box:hover { transform: translateY(-5px); }
-    .step-icon { font-size: 3rem; margin-bottom: 1rem; }
-    .step-title { font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; font-size: 1.2rem; }
-    .step-desc { font-size: 0.95rem; color: #64748b; line-height: 1.5; }
+    .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .feature-title { font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; font-size: 1.2rem; }
+    .feature-desc { font-size: 0.95rem; color: #64748b; line-height: 1.6; }
 
     /* كروت النتائج */
-    .result-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 6px solid #10b981; text-align: center; }
-    .result-card.danger { border-left: 6px solid #ef4444; }
-    .result-label { font-size: 0.9rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
-    .result-value { font-size: 1.8rem; color: #0f172a; font-weight: 700; margin-top: 0.5rem; }
+    .result-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #10b981; text-align: center; }
+    .result-card.danger { border-top: 5px solid #ef4444; }
+    .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .result-value { font-size: 1.8rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -108,7 +114,6 @@ val_transforms = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# قاموس العلاجات (مختصر للكود)
 treatments = {
     "Apple___Apple_scab": "Organic: Sulfur. Chemical: Captan. Prevention: Remove leaves.",
     "Strawberry___Leaf_scorch": "Organic: Neem oil. Chemical: Captan. Prevention: Air circulation.",
@@ -117,23 +122,20 @@ treatments = {
 }
 
 # --- واجهة المستخدم ---
-st.markdown("<h1 class='main-title'>🌿 Verdant AI</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>🌿 Verdant <span>AI</span></h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-title'>Advanced Plant Disease Diagnosis with Explainable AI</p>", unsafe_allow_html=True)
 
-# استخدام 3 أعمدة عشان نخلي المربع في النص وميكونش عريض أوي
+# مربع الرفع في النص
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    uploaded_file = st.file_uploader("Drag and drop or click to upload a leaf image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+    uploaded_file = st.file_uploader("Drag & Drop your leaf image here", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file).convert('RGB')
-    
-    st.markdown("<br>", unsafe_allow_html=True)
     col_img1, col_img2, col_btn = st.columns([2, 2, 1])
     
     with col_img1:
         st.image(image, caption="Uploaded Image", use_column_width=True)
-        
     with col_btn:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         diagnose_btn = st.button("Analyze Leaf 🔍", use_container_width=True)
@@ -158,7 +160,7 @@ if uploaded_file:
                 st.image(visualization, caption="AI Focus (Grad-CAM)", use_column_width=True)
             
             st.markdown("---")
-            st.markdown("<h3 style='text-align: center;'>📊 Diagnosis Results</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 2rem;'>📊 Diagnosis Results</h3>", unsafe_allow_html=True)
             
             r1, r2, r3 = st.columns(3)
             with r1:
@@ -171,18 +173,20 @@ if uploaded_file:
             with r3:
                 st.markdown(f"<div class='result-card'><div class='result-label'>Confidence</div><div class='result-value'>{conf.item()*100:.1f}%</div></div>", unsafe_allow_html=True)
 
-            st.markdown("<h3 style='margin-top: 2rem;'>💊 Treatment</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='margin-top: 3rem; color: #0f172a;'>💊 Treatment Recommendations</h3>", unsafe_allow_html=True)
             st.info(treatments.get(pred_class, "Consult a local agricultural expert for specific treatment."))
 
 else:
-    # قسم الخطوات في كروت واسعة
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; margin-bottom: 2rem;'>How it works</h3>", unsafe_allow_html=True)
-    
+    # قسم How it works
+    st.markdown("<h3 style='text-align: center; margin-top: 4rem; margin-bottom: 2rem; color: #0f172a;'>How it works</h3>", unsafe_allow_html=True)
     s1, s2, s3 = st.columns(3)
     with s1:
-        st.markdown("<div class='step-box'><div class='step-icon'>📸</div><div class='step-title'>1. Upload</div><div class='step-desc'>Take a clear photo of the infected leaf.</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='feature-card'><div class='feature-icon'>📸</div><div class='feature-title'>1. Capture</div><div class='feature-desc'>Take a clear photo of the infected leaf using your phone or camera.</div></div>", unsafe_allow_html=True)
     with s2:
-        st.markdown("<div class='step-box'><div class='step-icon'>🧠</div><div class='step-title'>2. Analyze</div><div class='step-desc'>Our AI scans the image for diseases.</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='feature-card'><div class='feature-icon'>🧠</div><div class='feature-title'>2. Analyze</div><div class='feature-desc'>Our Deep Learning model scans the image for diseases instantly.</div></div>", unsafe_allow_html=True)
     with s3:
-        st.markdown("<div class='step-box'><div class='step-icon'>💊</div><div class='step-title'>3. Treat</div><div class='step-desc'>Get instant treatment recommendations.</div></div>", unsafe_allow_html=True)
+        st.markdown("<div class='feature-card'><div class='feature-icon'>💊</div><div class='feature-title'>3. Treat</div><div class='feature-desc'>Get actionable organic and chemical treatment recommendations.</div></div>", unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin-top: 2rem; margin-bottom: 2rem; color: #0f172a;'>Supported Crops</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748b;'>🍎 Apple &nbsp;|&nbsp; 🍅 Tomato &nbsp;|&nbsp; 🥔 Potato &nbsp;|&nbsp; 🌽 Corn &nbsp;|&nbsp; 🍇 Grape &nbsp;|&nbsp; 🍓 Strawberry &nbsp;|&nbsp; 🍑 Peach &nbsp;|&nbsp; 🍊 Orange &nbsp;|&nbsp; 🌶️ Pepper &nbsp;|&nbsp; 🍒 Cherry</p>", unsafe_allow_html=True)
