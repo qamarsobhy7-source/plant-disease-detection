@@ -10,8 +10,8 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
-# إعدادات الصفحة (عشان نخفي القوائم الافتراضية)
-st.set_page_config(page_title="Verdant AI - Plant Doctor", page_icon="🌿", layout="wide", initial_sidebar_state="collapsed")
+# إعدادات الصفحة
+st.set_page_config(page_title="Verdant AI", page_icon="🌿", layout="centered")
 
 # --- CSS مخصص لتصميم Modern & Clean ---
 st.markdown("""
@@ -28,14 +28,14 @@ st.markdown("""
 
     /* تنسيق العنوان الرئيسي */
     .main-title {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 700;
         color: #0f172a;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
     }
     .sub-title {
-        font-size: 1.1rem;
+        font-size: 1rem;
         color: #64748b;
         text-align: center;
         margin-bottom: 2rem;
@@ -45,11 +45,11 @@ st.markdown("""
     .upload-box {
         background: white;
         border-radius: 16px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         border: 1px solid #e2e8f0;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
 
     /* تنسيق أزرار Streamlit */
@@ -67,18 +67,18 @@ st.markdown("""
     }
     .stButton>button:hover { background: #059669; transform: translateY(-1px); }
 
-    /* كروت النتائج (Bento Style) */
+    /* كروت النتائج */
     .result-card {
         background: white;
         border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        padding: 1.2rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
         border-left: 4px solid #10b981;
         margin-bottom: 1rem;
     }
     .result-card.danger { border-left: 4px solid #ef4444; }
-    .result-label { font-size: 0.875rem; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-    .result-value { font-size: 1.5rem; color: #0f172a; font-weight: 700; margin-top: 0.5rem; }
+    .result-label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    .result-value { font-size: 1.3rem; color: #0f172a; font-weight: 700; margin-top: 0.2rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -119,75 +119,65 @@ treatments = {
 st.markdown("<h1 class='main-title'>🌿 Verdant AI</h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-title'>Advanced Plant Disease Diagnosis with Explainable AI</p>", unsafe_allow_html=True)
 
-# شريط الرفع المخفي (في الـ Sidebar)
-with st.sidebar:
-    st.markdown("### 📸 Upload Leaf Image")
-    uploaded_file = st.file_uploader("Choose a clear photo of a plant leaf", type=["jpg", "jpeg", "png"])
-    if uploaded_file:
-        image = Image.open(uploaded_file).convert('RGB')
+# منطقة رفع الصورة في منتصف الشاشة
+st.markdown("<div class='upload-box'>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader("Upload a clear photo of a plant leaf", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+st.markdown("</div>", unsafe_allow_html=True)
+
+if uploaded_file:
+    image = Image.open(uploaded_file).convert('RGB')
+    
+    col_img, col_btn = st.columns([2, 1])
+    with col_img:
         st.image(image, caption="Uploaded Image", use_column_width=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        diagnose_btn = st.button("Analyze Leaf")
-
-# عرض المحتوى الرئيسي
-if uploaded_file and diagnose_btn:
-    with st.spinner("Analyzing leaf..."):
-        # Prediction
-        input_tensor = val_transforms(image).unsqueeze(0).to(device)
-        outputs = model(input_tensor)
-        probs = torch.nn.functional.softmax(outputs, dim=1)[0]
-        conf, pred = torch.max(probs, 0)
-        pred_class = unique_classes[pred.item()]
+    with col_btn:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        diagnose_btn = st.button("Analyze Leaf 🔍")
         
-        crop, disease = pred_class.split('___')
-        crop, disease = crop.replace('_', ' '), disease.replace('_', ' ')
-        
-        # Grad-CAM
-        targets = [ClassifierOutputTarget(pred.item())]
-        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
-        rgb_img = np.float32(image.resize((224, 224))) / 255
-        visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
-        
-        # عرض الصور في صف واحد
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("<div class='upload-box'>", unsafe_allow_html=True)
-            st.markdown("**Original Image**")
-            st.image(image, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+    if diagnose_btn:
+        with st.spinner("Analyzing leaf..."):
+            # Prediction
+            input_tensor = val_transforms(image).unsqueeze(0).to(device)
+            outputs = model(input_tensor)
+            probs = torch.nn.functional.softmax(outputs, dim=1)[0]
+            conf, pred = torch.max(probs, 0)
+            pred_class = unique_classes[pred.item()]
             
-        with col2:
-            st.markdown("<div class='upload-box'>", unsafe_allow_html=True)
-            st.markdown("**AI Focus Area (Grad-CAM)**")
-            st.image(visualization, use_column_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        # عرض النتائج في كروت (Bento Grid)
-        st.markdown("### 📊 Diagnosis Results")
-        c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Detected Crop</div><div class='result-value'>{crop}</div></div>", unsafe_allow_html=True)
-        
-        with c2:
-            is_healthy = disease.lower() == 'healthy'
-            card_class = "" if is_healthy else "danger"
-            status_icon = "✅" if is_healthy else "⚠️"
-            st.markdown(f"<div class='result-card {card_class}'><div class='result-label'>Status</div><div class='result-value'>{status_icon} {disease}</div></div>", unsafe_allow_html=True)
+            crop, disease = pred_class.split('___')
+            crop, disease = crop.replace('_', ' '), disease.replace('_', ' ')
             
-        with c3:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Confidence Score</div><div class='result-value'>{conf.item()*100:.1f}%</div></div>", unsafe_allow_html=True)
+            # Grad-CAM
+            targets = [ClassifierOutputTarget(pred.item())]
+            grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
+            rgb_img = np.float32(image.resize((224, 224))) / 255
+            visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
+            
+            # عرض الصور
+            st.markdown("---")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("**Original**")
+                st.image(image, use_column_width=True)
+            with c2:
+                st.markdown("**AI Focus (Grad-CAM)**")
+                st.image(visualization, use_column_width=True)
 
-        # التوصيات
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 💊 Treatment Recommendation")
-        st.info(treatments.get(pred_class, "Consult a local agricultural expert for specific treatment."))
+            # عرض النتائج
+            st.markdown("### 📊 Results")
+            r1, r2, r3 = st.columns(3)
+            
+            with r1:
+                st.markdown(f"<div class='result-card'><div class='result-label'>Crop</div><div class='result-value'>{crop}</div></div>", unsafe_allow_html=True)
+            
+            with r2:
+                is_healthy = disease.lower() == 'healthy'
+                card_class = "" if is_healthy else "danger"
+                status_icon = "✅" if is_healthy else "⚠️"
+                st.markdown(f"<div class='result-card {card_class}'><div class='result-label'>Status</div><div class='result-value'>{status_icon} {disease}</div></div>", unsafe_allow_html=True)
+                
+            with r3:
+                st.markdown(f"<div class='result-card'><div class='result-label'>Confidence</div><div class='result-value'>{conf.item()*100:.1f}%</div></div>", unsafe_allow_html=True)
 
-else:
-    # الشاشة الافتراضية (Hero Section) قبل رفع الصورة
-    st.markdown("""
-    <div style='text-align: center; padding: 4rem 2rem; background: white; border-radius: 16px; border: 2px dashed #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-        <h3 style='color: #64748b; font-weight: 500;'>👈 Please upload an image from the sidebar to begin your diagnosis.</h3>
-        <p style='color: #94a3b8; font-size: 0.9rem; margin-top: 1rem;'>Supported crops: Apple, Tomato, Potato, Corn, Grape, and more.</p>
-    </div>
-    """, unsafe_allow_html=True)
+            # التوصيات
+            st.markdown("### 💊 Treatment")
+            st.info(treatments.get(pred_class, "Consult a local agricultural expert for specific treatment."))
