@@ -31,7 +31,6 @@ st.markdown("""
     .result-card.warning { border-top: 5px solid #f59e0b; }
     .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .result-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
-    .feature-card { background: white; border-radius: 20px; padding: 2rem 1.5rem; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; height: 100%; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,11 +108,9 @@ if uploaded_file:
                 crop_name = m1_classes[m1_pred.item()]
                 crop_conf = m1_conf.item() * 100
                 
-        # 🚨 Safety Net 1: Crop Confidence Threshold (60%)
+        # عرض تحذير إذا كانت الثقة قليلة، ولكن نكمل!
         if crop_conf < 60.0:
-            st.warning(f"⚠️ **Low Confidence:** The AI is not sure what plant this is ({crop_conf:.1f}% confidence).")
-            st.info("Please make sure the image is clear, well-lit, and belongs to one of the 34 supported crops. Try another image.")
-            st.stop()
+            st.warning(f"⚠️ **Low Confidence ({crop_conf:.1f}%):** The AI is not completely sure, but its best guess is shown below. For best results, upload clear images of the 34 supported crops.")
 
         with st.spinner(f"Stage 2: Analyzing {crop_name} Disease Expert..."):
             expert_model, expert_classes = load_expert(crop_name)
@@ -125,17 +122,6 @@ if uploaded_file:
                     conf, pred = torch.max(probs, 0)
                     disease_name = expert_classes[pred.item()]
                     disease_conf = conf.item() * 100
-                    
-                # 🚨 Safety Net 2: Disease Confidence Threshold (50%)
-                if disease_conf < 50.0:
-                    disease_name = "Uncertain (Image unclear or unknown disease)"
-                    is_healthy = False
-                    card_class = "warning"
-                    status_icon = "❓"
-                else:
-                    is_healthy = 'healthy' in disease_name.lower()
-                    card_class = "" if is_healthy else "danger"
-                    status_icon = "✅" if is_healthy else "⚠️"
 
                 # Grad-CAM
                 cam = GradCAM(model=expert_model, target_layers=[expert_model.features[-1]])
@@ -144,6 +130,10 @@ if uploaded_file:
                 rgb_img = np.float32(image.resize((224, 224))) / 255
                 visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
                 final_conf = disease_conf
+                
+                is_healthy = 'healthy' in disease_name.lower()
+                card_class = "" if is_healthy else "danger"
+                status_icon = "✅" if is_healthy else "⚠️"
             else:
                 disease_name = "Healthy / No specific disease detected"
                 is_healthy = True
@@ -160,14 +150,14 @@ if uploaded_file:
         
         r1, r2, r3 = st.columns(3)
         with r1:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Crop Detected</div><div class='result-value'>{crop_name}</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='result-card'><div class='result-label'>Crop Detected</div><div class='result-value'>{crop_name} ({crop_conf:.1f}%)</div></div>", unsafe_allow_html=True)
         with r2:
             st.markdown(f"<div class='result-card {card_class}'><div class='result-label'>Disease Status</div><div class='result-value'>{status_icon} {disease_name}</div></div>", unsafe_allow_html=True)
         with r3:
-            st.markdown(f"<div class='result-card'><div class='result-label'>Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='result-card'><div class='result-label'>Disease Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
 
         st.markdown("<h3 style='margin-top: 2rem; color: #0f172a;'>💊 Treatment Recommendations</h3>", unsafe_allow_html=True)
-        if "Uncertain" in disease_name or "Healthy" in disease_name:
+        if "Healthy" in disease_name:
             st.info("No specific chemical treatment recommended. Please monitor the plant and ensure proper watering and sunlight.")
         else:
             treatment_text = treatments.get(crop_name, f"Consult a local agricultural expert for {crop_name} treatments.")
@@ -181,7 +171,3 @@ else:
         st.markdown("<div class='feature-card'><div style='font-size: 2.5rem;'>🧠</div><h4 style='color:#0f172a;'>2. Hierarchical AI</h4><p style='color:#64748b;'>Our system identifies the crop, then routes it to a specialized disease expert.</p></div>", unsafe_allow_html=True)
     with s3:
         st.markdown("<div class='feature-card'><div style='font-size: 2.5rem;'>💊</div><h4 style='color:#0f172a;'>3. Treat</h4><p style='color:#64748b;'>Get actionable treatment recommendations for 34+ crops.</p></div>", unsafe_allow_html=True)
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; margin-top: 2rem; margin-bottom: 2rem; color: #0f172a;'>Supported Crops (34)</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #64748b;'>🍎 Apple | 🍌 Banana | 🥕 Carrot | 🌽 Corn | 🍇 Grape | 🍋 Lemon | 🥭 Mango | 🍑 Peach | 🥔 Potato | 🍚 Rice | 🍓 Strawberry | 🍅 Tomato | 🌾 Wheat | ☕ Coffee | 🍵 Tea | ...and more!</p>", unsafe_allow_html=True)
