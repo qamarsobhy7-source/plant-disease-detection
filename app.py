@@ -10,9 +10,9 @@ import os
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
-from rembg import remove
 
 st.set_page_config(page_title="Verdant AI | 34 Crops", page_icon="🌿", layout="wide")
+
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
@@ -89,24 +89,17 @@ with col2:
     uploaded_file = st.file_uploader("Drag & Drop your leaf image here", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    original_image = Image.open(uploaded_file).convert('RGB')
+    image = Image.open(uploaded_file).convert('RGB')
     
     col_img, col_btn = st.columns([3, 1])
     with col_img:
-        st.image(original_image, caption="Uploaded Image", use_column_width=True)
+        # تم إصلاح تحذير العرض هنا
+        st.image(image, caption="Uploaded Image", use_container_width=True)
     with col_btn:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         diagnose_btn = st.button("Analyze Leaf 🔍", use_container_width=True)
         
     if diagnose_btn:
-        with st.spinner("✨ Removing background for better accuracy..."):
-            # إزالة الخلفية وتخليها بيضا
-            processed_image = remove(original_image)
-            # تحويل الخلفية الشفافة لبيضاء
-            bg = Image.new("RGB", processed_image.size, (255, 255, 255))
-            bg.paste(processed_image, mask=processed_image.split()[3])
-            image = bg
-            
         with st.spinner("Stage 1: Identifying Crop Type..."):
             m1_model, m1_classes = load_m1()
             input_tensor = val_transforms(image).unsqueeze(0).to(device)
@@ -150,10 +143,11 @@ if uploaded_file:
                 
         # عرض الصور
         st.markdown("---")
-        st.markdown("<h4 style='text-align: center;'>✨ Processed Image (Background Removed)</h4>", unsafe_allow_html=True)
-        c1, c2, c3 = st.columns([1, 2, 1])
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(image, caption="Original Image", use_container_width=True)
         with c2:
-            st.image(image, caption="The AI now focuses only on the leaf", use_column_width=True)
+            st.image(visualization, caption="AI Focus (Grad-CAM)", use_container_width=True)
 
         # Top 3
         st.markdown("<h3 class='section-title'>🔍 Top 3 Crop Predictions</h3>", unsafe_allow_html=True)
