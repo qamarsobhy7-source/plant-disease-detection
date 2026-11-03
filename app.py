@@ -12,26 +12,46 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
 st.set_page_config(page_title="Verdant AI | 34 Crops", page_icon="🌿", layout="wide")
+
 st.markdown("""
 <style>
+    /* إخفاء عناصر Streamlit الافتراضية */
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+    
+    /* الخلفية */
     .stApp { background: radial-gradient(circle at top right, #e0f2fe 0%, #f0fdf4 100%); }
     .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 1100px; }
-    .main-title { font-size: 3rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 0.5rem; letter-spacing: -1px; }
-    .main-title span { color: #10b981; }
-    .sub-title { font-size: 1.1rem; color: #64748b; text-align: center; margin-bottom: 3rem; font-weight: 400; }
+
+    /* العناوين (تعديل لون الخط عشان يبان) */
+    h1, h2, h3, h4, p, span, div { color: #0f172a !important; }
+    .main-title { font-size: 3rem; font-weight: 800; color: #0f172a !important; text-align: center; margin-bottom: 0.5rem; letter-spacing: -1px; }
+    .main-title span { color: #10b981 !important; }
+    .sub-title { font-size: 1.1rem; color: #64748b !important; text-align: center; margin-bottom: 3rem; font-weight: 400; }
+    .section-title { text-align: center; font-weight: 800; color: #0f172a !important; margin-top: 2rem; margin-bottom: 1.5rem; font-size: 1.5rem; }
+
+    /* مربع الرفع */
     [data-testid="stFileUploader"] { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border-radius: 24px; padding: 2rem; box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.15); border: 2px dashed #10b981; margin: 0 auto 3rem auto; max-width: 600px; text-align: center; }
     [data-testid="stFileUploader"] section { background: transparent; border: none; }
-    [data-testid="stFileUploader"] button { background: #10b981; color: white; border: none; border-radius: 50px; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; width: 100%; max-width: 250px; margin: 0 auto; }
-    .result-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #10b981; text-align: center; }
+    [data-testid="stFileUploader"] button { background: #10b981; color: white !important; border: none; border-radius: 50px; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; width: 100%; max-width: 250px; margin: 0 auto; }
+
+    /* كروت النتائج */
+    .result-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #10b981; text-align: center; height: 100%; }
     .result-card.danger { border-top: 5px solid #ef4444; }
-    .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .result-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
-    .treat-box { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 5px solid #3b82f6; }
-    .treat-title { font-weight: 700; color: #1e3a8a; margin-bottom: 0.5rem; font-size: 1.1rem; }
-    .treat-desc { color: #475569; font-size: 0.95rem; line-height: 1.5; }
+    .result-label { font-size: 0.85rem; color: #64748b !important; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .result-value { font-size: 1.5rem; color: #0f172a !important; font-weight: 800; margin-top: 0.5rem; }
+
+    /* كروت الـ Top 3 */
+    .top-card { background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center; border: 1px solid #e2e8f0; }
+    .top-title { font-size: 0.8rem; color: #64748b !important; font-weight: 600; }
+    .top-value { font-size: 1.1rem; color: #0f172a !important; font-weight: 700; }
+
+    /* صناديق العلاج */
+    .treat-box { background: white; border-radius: 12px; padding: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 5px solid #3b82f6; }
+    .treat-title { font-weight: 700; color: #1e3a8a !important; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .treat-desc { color: #475569 !important; font-size: 0.95rem; line-height: 1.5; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,7 +66,6 @@ val_transforms = transforms.Compose([
 def load_m1():
     with open('models_v2/crop_classes.json', 'r') as f:
         classes = json.load(f)
-    # تحميل الموديل الجامد الجديد
     model = models.efficientnet_b0(weights=None)
     num_ftrs = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_ftrs, len(classes))
@@ -86,8 +105,9 @@ with col2:
 if uploaded_file:
     image = Image.open(uploaded_file).convert('RGB')
     
-    col_img1, col_img2, col_btn = st.columns([2, 2, 1])
-    with col_img1:
+    # عرض الصورة الأصلية وزرار التحليل
+    col_img, col_btn = st.columns([3, 1])
+    with col_img:
         st.image(image, caption="Uploaded Image", use_column_width=True)
     with col_btn:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -105,18 +125,6 @@ if uploaded_file:
                 
                 crop_name = m1_classes[top3_indices[0].item()]
                 crop_conf = top3_probs[0].item() * 100
-
-        # عرض أفضل 3 احتمالات
-        st.markdown("### 🔍 Top 3 Crop Predictions")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f"<div class='result-card'><div class='result-label'>1st Guess</div><div class='result-value'>{m1_classes[top3_indices[0].item()]} ({top3_probs[0].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"<div class='result-card'><div class='result-label'>2nd Guess</div><div class='result-value'>{m1_classes[top3_indices[1].item()]} ({top3_probs[1].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
-        with c3:
-            st.markdown(f"<div class='result-card'><div class='result-label'>3rd Guess</div><div class='result-value'>{m1_classes[top3_indices[2].item()]} ({top3_probs[2].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
-
-        st.info(f"Continuing diagnosis based on the top prediction: **{crop_name}**")
 
         with st.spinner(f"Stage 2: Analyzing {crop_name} Disease Expert..."):
             expert_model, expert_classes = load_expert(crop_name)
@@ -147,10 +155,26 @@ if uploaded_file:
                 visualization = np.float32(image.resize((224, 224))) / 255
                 final_conf = crop_conf
                 
-        with col_img2:
-            st.image(visualization, caption="AI Focus (Grad-CAM)", use_column_width=True)
-            
+        # عرض الصورتين جنب بعض
         st.markdown("---")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(image, caption="Original Image", use_column_width=True)
+        with c2:
+            st.image(visualization, caption="AI Focus (Grad-CAM)", use_column_width=True)
+
+        # عرض أفضل 3 احتمالات
+        st.markdown("<h3 class='section-title'>🔍 Top 3 Crop Predictions</h3>", unsafe_allow_html=True)
+        t1, t2, t3 = st.columns(3)
+        with t1:
+            st.markdown(f"<div class='top-card'><div class='top-title'>1st Guess</div><div class='top-value'>{m1_classes[top3_indices[0].item()]} ({top3_probs[0].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+        with t2:
+            st.markdown(f"<div class='top-card'><div class='top-title'>2nd Guess</div><div class='top-value'>{m1_classes[top3_indices[1].item()]} ({top3_probs[1].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+        with t3:
+            st.markdown(f"<div class='top-card'><div class='top-title'>3rd Guess</div><div class='top-value'>{m1_classes[top3_indices[2].item()]} ({top3_probs[2].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+
+        # عرض التشخيص النهائي
+        st.markdown("<h3 class='section-title'>📊 Final Diagnosis</h3>", unsafe_allow_html=True)
         r1, r2, r3 = st.columns(3)
         with r1:
             st.markdown(f"<div class='result-card'><div class='result-label'>Crop Detected</div><div class='result-value'>{crop_name} ({crop_conf:.1f}%)</div></div>", unsafe_allow_html=True)
@@ -159,7 +183,8 @@ if uploaded_file:
         with r3:
             st.markdown(f"<div class='result-card'><div class='result-label'>Disease Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
 
-        st.markdown("### 💊 Step-by-Step Treatment Plan")
+        # خطة العلاج
+        st.markdown("<h3 class='section-title'>💊 Step-by-Step Treatment Plan</h3>", unsafe_allow_html=True)
         treatment_key = f"{crop_name}___{disease_name}"
         steps = treatments.get(treatment_key)
         
