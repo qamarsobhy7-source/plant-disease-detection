@@ -28,6 +28,7 @@ st.markdown("""
     [data-testid="stFileUploader"] button { background: #10b981; color: white; border: none; border-radius: 50px; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; width: 100%; max-width: 250px; margin: 0 auto; }
     .result-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #10b981; text-align: center; }
     .result-card.danger { border-top: 5px solid #ef4444; }
+    .result-card.warning { border-top: 5px solid #f59e0b; }
     .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .result-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
     .feature-card { background: white; border-radius: 20px; padding: 2rem 1.5rem; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; height: 100%; }
@@ -73,7 +74,6 @@ def load_expert(crop_name):
         return model, classes
     return None, None
 
-# قراءة العلاجات من الملف
 try:
     with open('treatments.json', 'r') as f:
         treatments = json.load(f)
@@ -107,7 +107,14 @@ if uploaded_file:
                 m1_probs = torch.nn.functional.softmax(m1_outputs, dim=1)[0]
                 m1_conf, m1_pred = torch.max(m1_probs, 0)
                 crop_name = m1_classes[m1_pred.item()]
+                crop_conf = m1_conf.item() * 100
                 
+        # 🚨 Safety Net 1: Crop Confidence Threshold (60%)
+        if crop_conf < 60.0:
+            st.warning(f"⚠️ **Low Confidence:** The AI is not sure what plant this is ({crop_conf:.1f}% confidence).")
+            st.info("Please make sure the image is clear, well-lit, and belongs to one of the 34 supported crops. Try another image.")
+            st.stop()
+
         with st.spinner(f"Stage 2: Analyzing {crop_name} Disease Expert..."):
             expert_model, expert_classes = load_expert(crop_name)
             
@@ -117,20 +124,33 @@ if uploaded_file:
                     probs = torch.nn.functional.softmax(outputs, dim=1)[0]
                     conf, pred = torch.max(probs, 0)
                     disease_name = expert_classes[pred.item()]
+                    disease_conf = conf.item() * 100
                     
-                # Grad-CAM على موديل الخبير
+                # 🚨 Safety Net 2: Disease Confidence Threshold (50%)
+                if disease_conf < 50.0:
+                    disease_name = "Uncertain (Image unclear or unknown disease)"
+                    is_healthy = False
+                    card_class = "warning"
+                    status_icon = "❓"
+                else:
+                    is_healthy = 'healthy' in disease_name.lower()
+                    card_class = "" if is_healthy else "danger"
+                    status_icon = "✅" if is_healthy else "⚠️"
+
+                # Grad-CAM
                 cam = GradCAM(model=expert_model, target_layers=[expert_model.features[-1]])
                 targets = [ClassifierOutputTarget(pred.item())]
                 grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
                 rgb_img = np.float32(image.resize((224, 224))) / 255
                 visualization = show_cam_on_image(rgb_img, grayscale_cam, use_rgb=True)
-                
-                final_conf = conf.item() * 100
+                final_conf = disease_conf
             else:
-                # لو المحصول ملوش خبير (زي البلويري اللي اتخطى لأنه سليم)
-                disease_name = "Healthy / No specific disease"
-                final_conf = m1_conf.item() * 100
-                visualization = np.float32(image.resize((224, 224))) / 255 # عرض الصورة الأصلية
+                disease_name = "Healthy / No specific disease detected"
+                is_healthy = True
+                card_class = ""
+                status_icon = "✅"
+                visualization = np.float32(image.resize((224, 224))) / 255
+                final_conf = crop_conf
                 
         with col_img2:
             st.image(visualization, caption="AI Focus (Grad-CAM)", use_column_width=True)
@@ -142,18 +162,17 @@ if uploaded_file:
         with r1:
             st.markdown(f"<div class='result-card'><div class='result-label'>Crop Detected</div><div class='result-value'>{crop_name}</div></div>", unsafe_allow_html=True)
         with r2:
-            is_healthy = 'healthy' in disease_name.lower()
-            card_class = "" if is_healthy else "danger"
-            status_icon = "✅" if is_healthy else "⚠️"
             st.markdown(f"<div class='result-card {card_class}'><div class='result-label'>Disease Status</div><div class='result-value'>{status_icon} {disease_name}</div></div>", unsafe_allow_html=True)
         with r3:
             st.markdown(f"<div class='result-card'><div class='result-label'>Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
 
         st.markdown("<h3 style='margin-top: 2rem; color: #0f172a;'>💊 Treatment Recommendations</h3>", unsafe_allow_html=True)
-        treatment_text = treatments.get(crop_name, f"Consult a local agricultural expert for {crop_name} treatments. General advice: remove infected leaves and ensure good air circulation.")
-        st.info(treatment_text)
+        if "Uncertain" in disease_name or "Healthy" in disease_name:
+            st.info("No specific chemical treatment recommended. Please monitor the plant and ensure proper watering and sunlight.")
+        else:
+            treatment_text = treatments.get(crop_name, f"Consult a local agricultural expert for {crop_name} treatments.")
+            st.info(treatment_text)
 else:
-    # قسم How it works
     st.markdown("<h3 style='text-align: center; margin-top: 3rem; margin-bottom: 2rem; color: #0f172a;'>How it works</h3>", unsafe_allow_html=True)
     s1, s2, s3 = st.columns(3)
     with s1:
