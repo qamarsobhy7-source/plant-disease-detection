@@ -73,15 +73,12 @@ def load_expert(crop_name):
         return model, classes
     return None, None
 
-# قاموس مختصر للعلاجات (عشان مساحة الكود)
-treatments = {
-    "Tomato": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Crop rotation.",
-    "Mango": "Organic: Copper spray. Chemical: Carbendazim. Prevention: Prune infected branches.",
-    "Banana": "Organic: Neem oil. Chemical: Mancozeb. Prevention: Ensure good drainage.",
-    "Apple": "Organic: Sulfur. Chemical: Captan. Prevention: Remove fallen leaves.",
-    "Potato": "Organic: Copper. Chemical: Mancozeb. Prevention: Certified seeds.",
-    # يمكنك إضافة الباقي لاحقاً
-}
+# قراءة العلاجات من الملف
+try:
+    with open('treatments.json', 'r') as f:
+        treatments = json.load(f)
+except:
+    treatments = {}
 
 st.markdown("<h1 class='main-title'>🌿 Verdant <span>AI</span></h1>", unsafe_allow_html=True)
 st.markdown("<p class='sub-title'>Advanced Plant Disease Diagnosis with Hierarchical AI</p>", unsafe_allow_html=True)
