@@ -1,31 +1,44 @@
 {
-    "Apple": "Organic: Sulfur or copper sprays. Chemical: Captan. Prevention: Remove fallen leaves.",
-    "Banana": "Organic: Neem oil. Chemical: Mancozeb. Prevention: Ensure good drainage.",
-    "Carrot": "Organic: Crop rotation. Chemical: Fungicides. Prevention: Avoid overhead watering.",
-    "Cassava": "Organic: Disease-free cuttings. Chemical: None. Prevention: Remove infected plants.",
-    "Cherry": "Organic: Neem oil. Chemical: Captan. Prevention: Prune for airflow.",
-    "Chili": "Organic: Neem oil. Chemical: Copper fungicides. Prevention: Crop rotation.",
-    "Coffee": "Organic: Copper sprays. Chemical: Fungicides. Prevention: Prune shade trees.",
-    "Corn": "Organic: Crop rotation. Chemical: Strobilurin. Prevention: Resistant hybrids.",
-    "Cucumber": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Trellis vines.",
-    "Grape": "Organic: Copper. Chemical: Myclobutanil. Prevention: Canopy management.",
-    "Guava": "Organic: Neem oil. Chemical: Copper oxychloride. Prevention: Prune infected branches.",
-    "Jamun": "Organic: Copper spray. Chemical: Carbendazim. Prevention: Remove infected fruits.",
-    "Jujube": "Organic: Sulfur spray. Chemical: Fungicides. Prevention: Proper spacing.",
-    "Lemon": "Organic: Copper spray. Chemical: Streptomycin. Prevention: Control citrus psyllid.",
-    "Mango": "Organic: Copper spray. Chemical: Carbendazim. Prevention: Prune infected branches.",
-    "Orange": "Organic: Control psyllid. Chemical: Imidacloprid. Prevention: Disease-free stock.",
-    "Peach": "Organic: Copper sprays. Chemical: Oxytetracycline. Prevention: Resistant varieties.",
-    "Pepper": "Organic: Copper. Chemical: Fixed copper. Prevention: Pathogen-free seeds.",
-    "Potato": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Crop rotation.",
-    "Pomegranate": "Organic: Copper. Chemical: Fungicides. Prevention: Remove infected fruits.",
-    "Raspberry": "Organic: Prune old canes. Chemical: None. Prevention: Good airflow.",
-    "Rice": "Organic: Silicon fertilizers. Chemical: Tricyclazole. Prevention: Balanced fertilizer.",
-    "Soybean": "Organic: Crop rotation. Chemical: Fungicides. Prevention: Resistant varieties.",
-    "Squash": "Organic: Potassium bicarbonate. Chemical: Myclobutanil. Prevention: Full sun.",
-    "Strawberry": "Organic: Neem oil. Chemical: Captan. Prevention: Air circulation.",
-    "Sugarcane": "Organic: Hot water treatment of setts. Chemical: Carbendazim. Prevention: Crop rotation.",
-    "Tea": "Organic: Neem oil. Chemical: Copper fungicides. Prevention: Pruning.",
-    "Tomato": "Organic: Neem oil. Chemical: Chlorothalonil. Prevention: Crop rotation and mulch.",
-    "Wheat": "Organic: Crop rotation. Chemical: Tebuconazole. Prevention: Resistant seeds."
+    "Tomato___Early blight": {
+        "immediate": "Remove infected lower leaves immediately and destroy them. Do not compost.",
+        "organic": "Apply Neem oil or Copper-based fungicide every 7-10 days.",
+        "chemical": "Use Chlorothalonil or Mancozeb based fungicides.",
+        "prevention": "Rotate crops, mulch around the base to prevent soil splash, and water at the base (not leaves)."
+    },
+    "Tomato___Late blight": {
+        "immediate": "Destroy infected plants immediately to prevent spread to nearby fields.",
+        "organic": "Copper sprays can slow down the spread.",
+        "chemical": "Apply Mancozeb or Metalaxyl.",
+        "prevention": "Avoid overhead watering. Ensure good air circulation."
+    },
+    "Tomato___Healthy": {
+        "immediate": "No action needed.",
+        "organic": "Maintain regular watering and organic fertilization.",
+        "chemical": "None.",
+        "prevention": "Monitor regularly for early signs of pests or spots."
+    },
+    "Potato___Early blight": {
+        "immediate": "Remove and destroy affected leaves.",
+        "organic": "Neem oil or Copper fungicides.",
+        "chemical": "Chlorothalonil.",
+        "prevention": "Crop rotation and proper spacing."
+    },
+    "Potato___Late blight": {
+        "immediate": "Cut down and destroy infected foliage.",
+        "organic": "Copper-based sprays.",
+        "chemical": "Mancozeb.",
+        "prevention": "Use certified disease-free seeds."
+    },
+    "Cucumber___Downy mildew": {
+        "immediate": "Remove heavily infected leaves.",
+        "organic": "Neem oil or Potassium bicarbonate.",
+        "chemical": "Chlorothalonil.",
+        "prevention": "Trellis vines for airflow, avoid overhead watering."
+    },
+    "Apple___Apple scab": {
+        "immediate": "Rake and destroy fallen leaves.",
+        "organic": "Sulfur or Copper sprays.",
+        "chemical": "Captan.",
+        "prevention": "Prune trees to improve airflow."
+    }
 }
