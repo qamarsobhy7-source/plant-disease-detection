@@ -4,5 +4,3 @@ torchvision
 grad-cam
 Pillow
 numpy
-rembg
-onnxruntime
