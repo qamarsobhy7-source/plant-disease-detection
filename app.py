@@ -12,7 +12,6 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 
 st.set_page_config(page_title="Verdant AI | 34 Crops", page_icon="🌿", layout="wide")
-
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
@@ -28,8 +27,7 @@ st.markdown("""
     [data-testid="stFileUploader"] button { background: #10b981; color: white; border: none; border-radius: 50px; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; width: 100%; max-width: 250px; margin: 0 auto; }
     .result-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid #10b981; text-align: center; }
     .result-card.danger { border-top: 5px solid #ef4444; }
-    .result-card.warning { border-top: 5px solid #f59e0b; }
-    .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
     .result-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
     .treat-box { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 5px solid #3b82f6; }
     .treat-title { font-weight: 700; color: #1e3a8a; margin-bottom: 0.5rem; font-size: 1.1rem; }
@@ -46,25 +44,21 @@ val_transforms = transforms.Compose([
 
 @st.cache_resource
 def load_m1():
-    try:
-        with open('models_v2/crop_classes.json', 'r') as f:
-            classes = json.load(f)
-        model = models.efficientnet_b0(weights=None)
-        num_ftrs = model.classifier[1].in_features
-        model.classifier[1] = nn.Linear(num_ftrs, len(classes))
-        model.load_state_dict(torch.load('models_v2/best_crop_detector_m1.pth', map_location=device))
-        model.eval()
-        return model, classes
-    except Exception as e:
-        st.error(f"Error loading M1: {e}")
-        st.stop()
+    with open('models_v2/crop_classes.json', 'r') as f:
+        classes = json.load(f)
+    # تحميل الموديل الجامد الجديد
+    model = models.efficientnet_b0(weights=None)
+    num_ftrs = model.classifier[1].in_features
+    model.classifier[1] = nn.Linear(num_ftrs, len(classes))
+    model.load_state_dict(torch.load('models_v2/best_crop_detector_m1_robust.pth', map_location=device))
+    model.eval()
+    return model, classes
 
 @st.cache_resource
 def load_expert(crop_name):
     safe_name = crop_name.replace(' ', '_').replace(',', '').replace('(', '').replace(')', '').replace('/', '_')
     model_path = f'models_v2/expert_{safe_name}.pth'
     classes_path = f'models_v2/expert_{safe_name}_classes.json'
-    
     if os.path.exists(model_path) and os.path.exists(classes_path):
         with open(classes_path, 'r') as f:
             classes = json.load(f)
@@ -107,12 +101,22 @@ if uploaded_file:
             with torch.no_grad():
                 m1_outputs = m1_model(input_tensor)
                 m1_probs = torch.nn.functional.softmax(m1_outputs, dim=1)[0]
-                m1_conf, m1_pred = torch.max(m1_probs, 0)
-                crop_name = m1_classes[m1_pred.item()]
-                crop_conf = m1_conf.item() * 100
+                top3_probs, top3_indices = torch.topk(m1_probs, 3)
                 
-        if crop_conf < 60.0:
-            st.warning(f"⚠️ **Low Confidence ({crop_conf:.1f}%):** The AI is not completely sure, but its best guess is shown below.")
+                crop_name = m1_classes[top3_indices[0].item()]
+                crop_conf = top3_probs[0].item() * 100
+
+        # عرض أفضل 3 احتمالات
+        st.markdown("### 🔍 Top 3 Crop Predictions")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f"<div class='result-card'><div class='result-label'>1st Guess</div><div class='result-value'>{m1_classes[top3_indices[0].item()]} ({top3_probs[0].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"<div class='result-card'><div class='result-label'>2nd Guess</div><div class='result-value'>{m1_classes[top3_indices[1].item()]} ({top3_probs[1].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+        with c3:
+            st.markdown(f"<div class='result-card'><div class='result-label'>3rd Guess</div><div class='result-value'>{m1_classes[top3_indices[2].item()]} ({top3_probs[2].item()*100:.1f}%)</div></div>", unsafe_allow_html=True)
+
+        st.info(f"Continuing diagnosis based on the top prediction: **{crop_name}**")
 
         with st.spinner(f"Stage 2: Analyzing {crop_name} Disease Expert..."):
             expert_model, expert_classes = load_expert(crop_name)
@@ -147,8 +151,6 @@ if uploaded_file:
             st.image(visualization, caption="AI Focus (Grad-CAM)", use_column_width=True)
             
         st.markdown("---")
-        st.markdown("<h3 style='text-align: center; color: #0f172a; margin-bottom: 2rem;'>📊 Hierarchical Diagnosis</h3>", unsafe_allow_html=True)
-        
         r1, r2, r3 = st.columns(3)
         with r1:
             st.markdown(f"<div class='result-card'><div class='result-label'>Crop Detected</div><div class='result-value'>{crop_name} ({crop_conf:.1f}%)</div></div>", unsafe_allow_html=True)
@@ -157,22 +159,11 @@ if uploaded_file:
         with r3:
             st.markdown(f"<div class='result-card'><div class='result-label'>Disease Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
 
-        # عرض خطة العلاج التفصيلية
         st.markdown("### 💊 Step-by-Step Treatment Plan")
-        
-        # البحث عن العلاج
         treatment_key = f"{crop_name}___{disease_name}"
         steps = treatments.get(treatment_key)
         
-        # لو ملقيناش بالاسم بالظبط، هندور على كلمة مفتاحية
         if not steps:
-            for key, val in treatments.items():
-                if crop_name in key and (disease_name.split()[0] in key or "healthy" in key.lower()):
-                    steps = val
-                    break
-                    
-        if not steps:
-            # العلاج الافتراضي لو مش موجود
             steps = {
                 "immediate": "Isolate the plant and remove visible infected parts.",
                 "organic": "Consult a local expert for organic options.",
@@ -180,18 +171,10 @@ if uploaded_file:
                 "prevention": "Ensure good air circulation and proper watering."
             }
 
-        # عرض الخطوات في صناديق منفصلة
         st.markdown(f"<div class='treat-box'><div class='treat-title'>🚨 Immediate Actions</div><div class='treat-desc'>{steps['immediate']}</div></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='treat-box' style='border-left-color: #10b981;'><div class='treat-title'>🌱 Organic Treatment</div><div class='treat-desc'>{steps['organic']}</div></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='treat-box' style='border-left-color: #f59e0b;'><div class='treat-title'>🧪 Chemical Treatment</div><div class='treat-desc'>{steps['chemical']}</div></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='treat-box' style='border-left-color: #6366f1;'><div class='treat-title'>🛡️ Prevention (Long-term)</div><div class='treat-desc'>{steps['prevention']}</div></div>", unsafe_allow_html=True)
 
 else:
-    st.markdown("<h3 style='text-align: center; margin-top: 3rem; margin-bottom: 2rem; color: #0f172a;'>How it works</h3>", unsafe_allow_html=True)
-    s1, s2, s3 = st.columns(3)
-    with s1:
-        st.markdown("<div class='feature-card'><div style='font-size: 2.5rem;'>📸</div><h4 style='color:#0f172a;'>1. Capture</h4><p style='color:#64748b;'>Take a clear photo of the infected leaf.</p></div>", unsafe_allow_html=True)
-    with s2:
-        st.markdown("<div class='feature-card'><div style='font-size: 2.5rem;'>🧠</div><h4 style='color:#0f172a;'>2. Hierarchical AI</h4><p style='color:#64748b;'>Our system identifies the crop, then routes it to a specialized disease expert.</p></div>", unsafe_allow_html=True)
-    with s3:
-        st.markdown("<div class='feature-card'><div style='font-size: 2.5rem;'>💊</div><h4 style='color:#0f172a;'>3. Treat</h4><p style='color:#64748b;'>Get actionable treatment recommendations for 34+ crops.</p></div>", unsafe_allow_html=True)
+    st.info("👈 Please upload a clear image of a plant leaf from the sidebar.")
