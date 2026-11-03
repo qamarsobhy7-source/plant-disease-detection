@@ -31,6 +31,9 @@ st.markdown("""
     .result-card.warning { border-top: 5px solid #f59e0b; }
     .result-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .result-value { font-size: 1.6rem; color: #0f172a; font-weight: 800; margin-top: 0.5rem; }
+    .treat-box { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; border-left: 5px solid #3b82f6; }
+    .treat-title { font-weight: 700; color: #1e3a8a; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .treat-desc { color: #475569; font-size: 0.95rem; line-height: 1.5; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -108,9 +111,8 @@ if uploaded_file:
                 crop_name = m1_classes[m1_pred.item()]
                 crop_conf = m1_conf.item() * 100
                 
-        # عرض تحذير إذا كانت الثقة قليلة، ولكن نكمل!
         if crop_conf < 60.0:
-            st.warning(f"⚠️ **Low Confidence ({crop_conf:.1f}%):** The AI is not completely sure, but its best guess is shown below. For best results, upload clear images of the 34 supported crops.")
+            st.warning(f"⚠️ **Low Confidence ({crop_conf:.1f}%):** The AI is not completely sure, but its best guess is shown below.")
 
         with st.spinner(f"Stage 2: Analyzing {crop_name} Disease Expert..."):
             expert_model, expert_classes = load_expert(crop_name)
@@ -123,7 +125,6 @@ if uploaded_file:
                     disease_name = expert_classes[pred.item()]
                     disease_conf = conf.item() * 100
 
-                # Grad-CAM
                 cam = GradCAM(model=expert_model, target_layers=[expert_model.features[-1]])
                 targets = [ClassifierOutputTarget(pred.item())]
                 grayscale_cam = cam(input_tensor=input_tensor, targets=targets)[0, :]
@@ -156,12 +157,35 @@ if uploaded_file:
         with r3:
             st.markdown(f"<div class='result-card'><div class='result-label'>Disease Confidence</div><div class='result-value'>{final_conf:.1f}%</div></div>", unsafe_allow_html=True)
 
-        st.markdown("<h3 style='margin-top: 2rem; color: #0f172a;'>💊 Treatment Recommendations</h3>", unsafe_allow_html=True)
-        if "Healthy" in disease_name:
-            st.info("No specific chemical treatment recommended. Please monitor the plant and ensure proper watering and sunlight.")
-        else:
-            treatment_text = treatments.get(crop_name, f"Consult a local agricultural expert for {crop_name} treatments.")
-            st.info(treatment_text)
+        # عرض خطة العلاج التفصيلية
+        st.markdown("### 💊 Step-by-Step Treatment Plan")
+        
+        # البحث عن العلاج
+        treatment_key = f"{crop_name}___{disease_name}"
+        steps = treatments.get(treatment_key)
+        
+        # لو ملقيناش بالاسم بالظبط، هندور على كلمة مفتاحية
+        if not steps:
+            for key, val in treatments.items():
+                if crop_name in key and (disease_name.split()[0] in key or "healthy" in key.lower()):
+                    steps = val
+                    break
+                    
+        if not steps:
+            # العلاج الافتراضي لو مش موجود
+            steps = {
+                "immediate": "Isolate the plant and remove visible infected parts.",
+                "organic": "Consult a local expert for organic options.",
+                "chemical": "Consult an agronomist before applying chemicals.",
+                "prevention": "Ensure good air circulation and proper watering."
+            }
+
+        # عرض الخطوات في صناديق منفصلة
+        st.markdown(f"<div class='treat-box'><div class='treat-title'>🚨 Immediate Actions</div><div class='treat-desc'>{steps['immediate']}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='treat-box' style='border-left-color: #10b981;'><div class='treat-title'>🌱 Organic Treatment</div><div class='treat-desc'>{steps['organic']}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='treat-box' style='border-left-color: #f59e0b;'><div class='treat-title'>🧪 Chemical Treatment</div><div class='treat-desc'>{steps['chemical']}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='treat-box' style='border-left-color: #6366f1;'><div class='treat-title'>🛡️ Prevention (Long-term)</div><div class='treat-desc'>{steps['prevention']}</div></div>", unsafe_allow_html=True)
+
 else:
     st.markdown("<h3 style='text-align: center; margin-top: 3rem; margin-bottom: 2rem; color: #0f172a;'>How it works</h3>", unsafe_allow_html=True)
     s1, s2, s3 = st.columns(3)
