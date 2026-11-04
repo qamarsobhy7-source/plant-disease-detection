@@ -1,6 +1,6 @@
-streamlit==1.25.0
-torch==2.0.1
-torchvision==0.15.2
-grad-cam==1.4.8
-Pillow==9.5.0
-numpy==1.24.3
+streamlit
+torch
+torchvision
+grad-cam
+Pillow
+numpy
