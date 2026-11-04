@@ -41,7 +41,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-device = torch.device("cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 val_transforms = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -78,7 +78,8 @@ def load_expert(crop_name):
 try:
     with open('treatments.json', 'r') as f:
         treatments = json.load(f)
-except:
+except Exception as e:
+    st.error(f"⚠️ Failed to load treatments database: {e}")
     treatments = {}
 
 st.markdown("<h1 class='main-title'>🌿 Verdant <span>AI</span></h1>", unsafe_allow_html=True)
