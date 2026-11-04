@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## 🚀 Live Demo
-Experience the application live: **[Verdant AI App](https://t9pirw.streamlit.app/)**
+Experience the application live: **[Verdant AI App](https://plant-disease-detection-8fez5r9xxtyvoc3end7ywc.streamlit.app/)**
 
 ![Verdant AI Demo](assets/demo.png)
 
