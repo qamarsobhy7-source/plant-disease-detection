@@ -114,12 +114,25 @@ The M1 model is trained on the PlantVillage dataset, supporting 14 primary crops
    ```
 
 ## ⚠️ Limitations & Future Work
-- **Domain Shift:** The model achieves **97.4%** accuracy on lab-controlled datasets (PlantVillage). However, real-world field images may show slight variations due to background noise. We implemented the *Top-3 Prediction* safety net to mitigate this.
-- **Future Work:** 
-  - Integrate an Out-of-Distribution (OOD) detector to reject non-leaf images.
-  - Expand the M1 dataset to include 30+ crops using real-world datasets (e.g., PlantDoc).
-  - Build a REST API using FastAPI for mobile app integration.
-  - Add User Authentication to save diagnosis history.
+While Verdant achieves excellent results as a research prototype, the following points outline the boundaries of the current system and the roadmap for turning it into a production-grade commercial product:
 
+### 1. Domain Shift (Real-World Data)
+- **Limitation:** The current 97.4% accuracy was achieved on lab-controlled data (PlantVillage). Real-world field images (with soil, sunlight, and shadows) may cause a performance drop.
+- **Mitigation:** We implemented a **Top-3 Predictions** safety net that displays the 3 most likely crops, preventing false confident diagnoses.
+- **Future Work:** Integrate larger real-world datasets (e.g., PlantDoc) and apply **Domain Adaptation** techniques to match lab-level performance in the field.
+
+### 2. Out-of-Distribution (OOD) Detection
+- **Limitation:** The system currently assumes the input is always a leaf. If a user uploads an unrelated image (e.g., a car, a face, or a non-leaf object), the model may still attempt to classify it.
+- **Future Work:** Implement a lightweight **Quality Gate (M0)** (e.g., MobileNet) to validate images and reject out-of-distribution inputs before processing.
+
+### 3. Backend Architecture
+- **Limitation:** The current frontend is built with **Streamlit**, which is excellent for rapid prototyping but not ideal for native mobile apps.
+- **Future Work:** Build a **REST API using FastAPI** to decouple the AI engine from the interface, enabling integration with Android/iOS apps.
+
+### 4. User Management & Persistence
+- **Limitation:** The app does not currently support user authentication or history tracking.
+- **Future Work:** Add **JWT-based Authentication** and a **PostgreSQL** database so farmers can save, review, and export their diagnosis history over time.
+
+---
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
