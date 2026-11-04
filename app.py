@@ -50,12 +50,12 @@ val_transforms = transforms.Compose([
 
 @st.cache_resource
 def load_m1():
-    with open('models_v5/crop_classes.json', 'r') as f:
+    with open('models_v6/crop_classes.json', 'r') as f:
         classes = json.load(f)
     model = models.efficientnet_b0(weights=None)
     num_ftrs = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(num_ftrs, len(classes))
-    model.load_state_dict(torch.load('models_v5/best_crop_detector_m1_v5.pth', map_location=device))
+    model.load_state_dict(torch.load('models_v6/best_crop_detector_m1_v6.pth', map_location=device))
     model.eval()
     return model, classes
 
