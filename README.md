@@ -128,5 +128,26 @@ To transition from a functional prototype to a full production-grade commercial 
 ### 4. User Management & Persistence
 - Integrate **JWT-based Authentication** and a **PostgreSQL** database to allow users to save, review, and export their diagnosis history over time.
 
+
+## 🧪 Cross-Domain Evaluation & Scientific Rigor
+To ensure scientific transparency, we acknowledge the well-known **Domain Shift** problem. While the model achieves **97.4%** on the lab-controlled PlantVillage dataset, real-world field images (e.g., PlantDoc) present challenges due to complex backgrounds and varying lighting.
+
+- **Field Testing Results:** Early testing on field data indicates a drop in top-1 accuracy to approximately **~62%**. This highlights the exact gap between lab and field conditions.
+- **Mitigation Strategy:** We implemented the **Top-3 Predictions (Safety Net)** to handle this uncertainty, ensuring the user is presented with the closest possible matches rather than a single incorrect diagnosis. Future iterations will focus on Domain Adaptation and fine-tuning on field datasets.
+
+## 📊 Evaluation Metrics
+Beyond simple accuracy, the model's performance was evaluated using:
+- **Macro F1-Score:** Evaluates performance across all 14 crops equally, preventing majority classes (e.g., Tomato) from biasing the results.
+- **Confusion Matrix:** Generated during evaluation to identify which diseases are most frequently confused (e.g., distinguishing similar blights across different crops). The `src/evaluate.py` script contains the logic for generating these metrics.
+
+## 🧠 Design Decisions
+- **Why EfficientNet-B0?** Chosen for its optimal balance between depth, width, and resolution, allowing high accuracy while remaining lightweight enough for edge deployment and fast CPU/GPU inference.
+- **Why Hierarchical?** A single model classifying 38 diseases often confuses similar symptoms (e.g., Early Blight in Tomato vs. Potato). The M1 -> M2 approach isolates the problem space, mimicking human expert clinical reasoning.
+- **Why remove `rembg`?** While background removal was initially considered, it proved too computationally heavy for free-tier cloud hosting (RAM limits) and added latency. We opted for aggressive Data Augmentation instead to handle background noise.
+
+## 🔄 Reproducibility
+- **Random Seed:** A fixed seed (`SEED=42`) was used during data splitting and training to ensure reproducible results.
+- **Hyperparameters:** The M1 model was trained using the AdamW optimizer with a learning rate of `1e-3`, batch size of `64`, for `4` epochs. The training scripts and configuration details are available in the `src/` directory.
+
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
