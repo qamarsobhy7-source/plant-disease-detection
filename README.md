@@ -149,5 +149,17 @@ Beyond simple accuracy, the model's performance was evaluated using:
 - **Random Seed:** A fixed seed (`SEED=42`) was used during data splitting and training to ensure reproducible results.
 - **Hyperparameters:** The M1 model was trained using the AdamW optimizer with a learning rate of `1e-3`, batch size of `64`, for `4` epochs. The training scripts and configuration details are available in the `src/` directory.
 
+
+## 📈 Scalability & Production Notes
+To ensure smooth operation and transition to a full-scale production environment, the following engineering decisions and constraints are documented:
+
+### 1. Model Management
+- **Current State:** Model weights (`.pth` files) are stored directly in the repository for demonstration purposes on Streamlit Cloud.
+- **Production Recommendation:** In a production setting, models should be hosted on a dedicated model registry (e.g., Hugging Face Hub, AWS S3, or MLflow) to prevent repository bloat. The application would fetch weights dynamically via an API.
+
+### 2. Cloud Hosting Constraints
+- **Memory:** The live demo runs on Streamlit Community Cloud (Free Tier), which has a 1GB RAM limit. Loading the hierarchical models simultaneously pushes this limit, so the M1 and M2 models are loaded sequentially/cached.
+- **Concurrency:** The free tier handles limited concurrent users. For high-traffic scenarios, deploying to a containerized environment (e.g., AWS ECS, GCP Cloud Run) using the provided `Dockerfile` is recommended.
+
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
